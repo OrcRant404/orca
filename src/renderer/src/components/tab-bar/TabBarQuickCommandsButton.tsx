@@ -1,7 +1,10 @@
 import { useMemo, useState } from 'react'
 import { Play } from 'lucide-react'
 import { useAppStore } from '@/store'
-import { getTerminalQuickCommandHostPromptMaxLength } from '@/lib/terminal-quick-command-host-prompt-limit'
+import {
+  getTerminalQuickCommandHostLaunchOptionsSupported,
+  getTerminalQuickCommandHostPromptMaxLength
+} from '@/lib/terminal-quick-command-host-prompt-limit'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   createTerminalQuickCommandDraft,
@@ -151,6 +154,9 @@ export function TabBarQuickCommandsButton({
   const editorPromptMaxLength = useAppStore((state) =>
     editor ? getTerminalQuickCommandHostPromptMaxLength(state, editor.hostId) : undefined
   )
+  const editorLaunchOptionsSupported = useAppStore((state) =>
+    editor ? getTerminalQuickCommandHostLaunchOptionsSupported(state, editor.hostId) : false
+  )
   const editorRepos = editor?.hostId.startsWith('runtime:')
     ? repos.filter((repo) => getRepoExecutionHostId(repo) === editor.hostId)
     : repos
@@ -193,6 +199,7 @@ export function TabBarQuickCommandsButton({
           command={editor?.command ?? createTerminalQuickCommandDraft({ type: 'repo', repoId })}
           repos={editorRepos}
           agentPromptMaxLength={editorPromptMaxLength}
+          launchOptionsSupported={editorLaunchOptionsSupported}
           onOpenChange={(open) => !open && setEditor(null)}
           onSave={handleSaveCommand}
         />
@@ -224,6 +231,7 @@ export function TabBarQuickCommandsButton({
         command={editor?.command ?? createTerminalQuickCommandDraft({ type: 'repo', repoId })}
         repos={editorRepos}
         agentPromptMaxLength={editorPromptMaxLength}
+        launchOptionsSupported={editorLaunchOptionsSupported}
         onOpenChange={(open) => !open && setEditor(null)}
         onSave={handleSaveCommand}
       />

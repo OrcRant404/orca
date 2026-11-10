@@ -1,3 +1,4 @@
+import { TERMINAL_QUICK_COMMAND_LAUNCH_OPTIONS_RUNTIME_CAPABILITY } from './terminal/quick-commands/terminal-quick-command-capabilities'
 import { GIT_REVERT_CONFLICT_CLIENT_CAPABILITY } from './git/commands/git-commit-action'
 import { GIT_GRAPH_TAB_CAPABILITY } from './source-control/runtime/git-graph-capabilities'
 import { STRUCTURED_AGENT_SESSION_RENDERER_CLIENT_CAPABILITIES } from './agent-session/structured-agent-session-renderer-client-capabilities'
@@ -21,6 +22,7 @@ import {
 // host still requires the separate authenticated browser-client lease.
 export const ELECTRON_REMOTE_RUNTIME_CLIENT_CAPABILITIES = [
   GIT_GRAPH_TAB_CAPABILITY,
+  TERMINAL_QUICK_COMMAND_LAUNCH_OPTIONS_RUNTIME_CAPABILITY,
   GIT_REVERT_CONFLICT_CLIENT_CAPABILITY,
   STRUCTURED_CHAT_START_TELEMETRY_CLIENT_CAPABILITY,
   STRUCTURED_CHAT_PROMPT_TELEMETRY_CLIENT_CAPABILITY,

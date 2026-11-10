@@ -1,4 +1,7 @@
 import type { TuiAgent } from '../../agent-launch/catalog/tui-agent'
+import type { TerminalQuickCommandLaunchOptions } from './terminal-quick-command-launch-options'
+
+export type { TerminalQuickCommandLaunchOptions } from './terminal-quick-command-launch-options'
 
 export type TerminalQuickCommandScope =
   | {
@@ -27,6 +30,7 @@ export type TerminalAgentQuickCommand = TerminalQuickCommandBase & {
   action: 'agent-prompt'
   agent: TuiAgent
   prompt: string
+  launchOptions?: TerminalQuickCommandLaunchOptions
 }
 
 export type TerminalQuickCommand = TerminalCommandQuickCommand | TerminalAgentQuickCommand

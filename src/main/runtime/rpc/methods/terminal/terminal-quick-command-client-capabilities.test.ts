@@ -6,7 +6,10 @@ import { LEGACY_MAX_QUICK_COMMAND_AGENT_PROMPT_LENGTH } from '../../../../../sha
 import type { TerminalQuickCommand } from '../../../../../shared/terminal/quick-commands/terminal-quick-command-types'
 import type { TerminalQuickCommandMutation } from '../../../../../shared/terminal/quick-commands/terminal-quick-commands'
 import '../../../../../shared/web-runtime-client-capabilities'
-import { TERMINAL_QUICK_COMMAND_LARGE_LISTS_RUNTIME_CAPABILITY } from '../../../../../shared/terminal/quick-commands/terminal-quick-command-capabilities'
+import {
+  TERMINAL_QUICK_COMMAND_LARGE_LISTS_RUNTIME_CAPABILITY,
+  TERMINAL_QUICK_COMMAND_LAUNCH_OPTIONS_RUNTIME_CAPABILITY
+} from '../../../../../shared/terminal/quick-commands/terminal-quick-command-capabilities'
 import type { OrcaRuntimeService } from '../../../orca-runtime'
 import '../../../../ipc/desktop-renderer-runtime-capabilities'
 import { RuntimeClientSettingsController } from '../../../client/settings/runtime-client-settings'
@@ -101,6 +104,47 @@ describe('quick-command client compatibility', () => {
       result: { terminalQuickCommands: [edited, ...commands.slice(2, 41)] }
     })
     expect(state.settings.terminalQuickCommands).toEqual([edited, ...commands.slice(2)])
+  })
+
+  it('preserves a model preset while withholding it from older paired clients', async () => {
+    const { dispatcher } = makeDispatcher([shortCommand])
+    const preset = {
+      id: 'astra',
+      label: 'Orchestrator — Astra',
+      action: 'agent-prompt',
+      agent: 'codex',
+      prompt: '',
+      scope: { type: 'global' },
+      launchOptions: { model: 'gpt-6-astra', effort: 'high', serviceTier: 'priority' }
+    }
+    const currentClient = {
+      clientKind: 'runtime' as const,
+      clientCapabilities: [TERMINAL_QUICK_COMMAND_LAUNCH_OPTIONS_RUNTIME_CAPABILITY]
+    }
+    const oldClient = { clientKind: 'mobile' as const, clientCapabilities: [] }
+    const getCommands = makeRequest('settings.getTerminalQuickCommands')
+    const updateCommand = (command: unknown) =>
+      makeRequest('settings.updateTerminalQuickCommands', {
+        mutation: { type: 'upsert', command }
+      })
+
+    expect(await dispatcher.dispatch(updateCommand(preset), currentClient)).toMatchObject({
+      ok: true,
+      result: { terminalQuickCommands: [shortCommand, preset] }
+    })
+    expect(await dispatcher.dispatch(getCommands, oldClient)).toMatchObject({
+      ok: true,
+      result: { terminalQuickCommands: [shortCommand] }
+    })
+    const { launchOptions: _launchOptions, ...oldPreset } = preset
+    expect(await dispatcher.dispatch(updateCommand(oldPreset), oldClient)).toMatchObject({
+      ok: false,
+      error: { code: 'invalid_argument' }
+    })
+    expect(await dispatcher.dispatch(getCommands, currentClient)).toMatchObject({
+      ok: true,
+      result: { terminalQuickCommands: [shortCommand, preset] }
+    })
   })
 
   it.each(['runtime', 'mobile'] as const)(

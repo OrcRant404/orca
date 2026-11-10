@@ -4,7 +4,8 @@ import {
   getTerminalQuickCommandBody,
   isTerminalAgentQuickCommand
 } from '../../../../shared/terminal/quick-commands/terminal-quick-commands'
-import { AgentIcon, getAgentLabel } from '@/lib/agent-catalog'
+import { AgentIcon } from '@/lib/agent-catalog'
+import { formatTerminalAgentQuickCommandPreview } from '@/components/terminal-quick-commands/terminal-agent-quick-command-preview'
 import { useTranslate } from '@/i18n/use-translate'
 import { useClipboardTextCopyFeedback } from '@/hooks/use-clipboard-text-copy-feedback'
 import type { HostedTerminalQuickCommand } from '@/hooks/use-terminal-quick-command-hosts'
@@ -94,7 +95,7 @@ export function TabBarQuickCommandItem({
         </span>
         <span className="block truncate font-mono text-[11px] text-muted-foreground">
           {isTerminalAgentQuickCommand(command)
-            ? `${getAgentLabel(command.agent)}: ${command.prompt}`
+            ? formatTerminalAgentQuickCommandPreview(command)
             : command.command}
         </span>
       </span>

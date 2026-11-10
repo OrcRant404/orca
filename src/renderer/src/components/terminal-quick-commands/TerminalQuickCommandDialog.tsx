@@ -9,6 +9,7 @@ import {
   getTerminalQuickCommandAction,
   getTerminalQuickCommandScope,
   isTerminalAgentQuickCommand,
+  isTerminalQuickCommandRunnable,
   supportsTerminalAgentQuickCommand
 } from '../../../../shared/terminal/quick-commands/terminal-quick-commands'
 import { getTerminalQuickCommandBodySize } from '../../../../shared/terminal/quick-commands/terminal-quick-command-prompt-limit'
@@ -33,6 +34,7 @@ import {
   createTerminalQuickCommandDialogDraftMemory,
   switchTerminalQuickCommandDialogAction
 } from './terminal-quick-command-dialog-draft'
+import { finalizeTerminalQuickCommandLaunchOptions } from './terminal-quick-command-launch-option-fields'
 import { useTranslate } from '@/i18n/use-translate'
 
 type TerminalQuickCommandDialogMode = 'add' | 'edit'
@@ -47,6 +49,8 @@ type TerminalQuickCommandDialogProps = {
   defaultAdvancedOpen?: boolean
   /** An older target host's agent-prompt character cap; `null` (the default) means none. */
   agentPromptMaxLength?: number | null
+  /** Older target hosts can't store model launch options, so their controls stay disabled. */
+  launchOptionsSupported?: boolean
   onOpenChange: (open: boolean) => void
   /** Resolves whether the save landed; the dialog closes only then, so a refusal keeps the text. */
   onSave: (command: TerminalQuickCommand) => Promise<boolean> | boolean
@@ -73,6 +77,7 @@ export function TerminalQuickCommandDialog({
   repos = EMPTY_REPOS,
   defaultAdvancedOpen = false,
   agentPromptMaxLength = null,
+  launchOptionsSupported = true,
   onOpenChange,
   onSave
 }: TerminalQuickCommandDialogProps): React.JSX.Element {
@@ -148,40 +153,41 @@ export function TerminalQuickCommandDialog({
     )
   }
 
-  const saveDraft = async (): Promise<void> => {
-    if (savingRef.current) {
-      return
+  const buildSaveCommand = (): TerminalQuickCommand => {
+    if (isTerminalAgentQuickCommand(draft)) {
+      const launchOptions = finalizeTerminalQuickCommandLaunchOptions(draft.launchOptions)
+      return {
+        id: draft.id,
+        label: draft.label.trim(),
+        action: 'agent-prompt',
+        agent: draft.agent,
+        prompt: draft.prompt.trimEnd(),
+        scope: selectedScope,
+        ...(launchOptions ? { launchOptions } : {})
+      }
     }
-    const next: TerminalQuickCommand = isTerminalAgentQuickCommand(draft)
-      ? {
-          id: draft.id,
-          label: draft.label.trim(),
-          action: 'agent-prompt',
-          agent: draft.agent,
-          prompt: draft.prompt.trimEnd(),
-          scope: selectedScope
-        }
-      : {
-          id: draft.id,
-          label: draft.label.trim(),
-          action: 'terminal-command',
-          command: draft.command.trimEnd(),
-          appendEnter: draft.appendEnter,
-          scope: selectedScope
-        }
-    if (
-      !next.label ||
-      bodyTooLong ||
-      (isTerminalAgentQuickCommand(next)
-        ? !next.prompt.trim() || !supportsTerminalAgentQuickCommand(next.agent)
-        : !next.command.trim())
-    ) {
+    return {
+      id: draft.id,
+      label: draft.label.trim(),
+      action: 'terminal-command',
+      command: draft.command.trimEnd(),
+      appendEnter: draft.appendEnter,
+      scope: selectedScope
+    }
+  }
+  const saveCandidate = buildSaveCommand()
+  // Why: a configured model makes the prompt optional; the label is always required.
+  const saveCandidateValid =
+    saveCandidate.label.length > 0 && !bodyTooLong && isTerminalQuickCommandRunnable(saveCandidate)
+
+  const saveDraft = async (): Promise<void> => {
+    if (savingRef.current || !saveCandidateValid) {
       return
     }
     savingRef.current = true
     setSaving(true)
     try {
-      if (await onSave(next)) {
+      if (await onSave(saveCandidate)) {
         onOpenChange(false)
       }
     } finally {
@@ -196,13 +202,7 @@ export function TerminalQuickCommandDialog({
     }
   }
 
-  const canSave =
-    !saving &&
-    draft.label.trim().length > 0 &&
-    !bodyTooLong &&
-    (isAgentAction
-      ? draft.prompt.trimEnd().length > 0 && supportsTerminalAgentQuickCommand(draft.agent)
-      : draft.command.trimEnd().length > 0)
+  const canSave = !saving && saveCandidateValid
   const submitShortcutLabel = getScreenSubmitShortcutLabel()
 
   return (
@@ -280,6 +280,7 @@ export function TerminalQuickCommandDialog({
             draft={draft}
             isAgentAction={isAgentAction}
             selectedAgent={selectedAgent}
+            launchOptionsSupported={launchOptionsSupported}
             bodySize={bodySize}
             draftMemoryRef={draftMemoryRef}
             setDraft={setDraft}

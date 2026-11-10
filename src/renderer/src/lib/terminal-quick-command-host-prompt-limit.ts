@@ -1,3 +1,4 @@
+import { TERMINAL_QUICK_COMMAND_LAUNCH_OPTIONS_RUNTIME_CAPABILITY } from '../../../shared/terminal/quick-commands/terminal-quick-command-capabilities'
 import type { AppState } from '@/store/types'
 import { terminalQuickCommandAgentPromptMaxLength } from '../../../shared/terminal/quick-commands/terminal-quick-command-prompt-limit'
 import { parseExecutionHostId, type ExecutionHostId } from '../../../shared/execution-host'
@@ -15,5 +16,20 @@ export function getTerminalQuickCommandHostPromptMaxLength(
   return terminalQuickCommandAgentPromptMaxLength(
     lastVerifiedRuntimeStatus(state.runtimeStatusByEnvironmentId.get(parsed.environmentId))
       ?.capabilities
+  )
+}
+
+export function getTerminalQuickCommandHostLaunchOptionsSupported(
+  state: Pick<AppState, 'runtimeStatusByEnvironmentId'>,
+  hostId: ExecutionHostId
+): boolean {
+  const parsed = parseExecutionHostId(hostId)
+  if (!parsed || parsed.kind !== 'runtime') {
+    return true
+  }
+  return (
+    lastVerifiedRuntimeStatus(
+      state.runtimeStatusByEnvironmentId.get(parsed.environmentId)
+    )?.capabilities?.includes(TERMINAL_QUICK_COMMAND_LAUNCH_OPTIONS_RUNTIME_CAPABILITY) === true
   )
 }

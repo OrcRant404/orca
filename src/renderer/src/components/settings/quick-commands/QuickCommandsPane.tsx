@@ -8,7 +8,10 @@ import {
 } from '@/components/terminal-quick-commands/TerminalQuickCommandDialog'
 import { searchTerminalQuickCommands } from '@/lib/terminal-quick-command-search'
 import { useAppStore } from '../../../store/index'
-import { getTerminalQuickCommandHostPromptMaxLength } from '@/lib/terminal-quick-command-host-prompt-limit'
+import {
+  getTerminalQuickCommandHostLaunchOptionsSupported,
+  getTerminalQuickCommandHostPromptMaxLength
+} from '@/lib/terminal-quick-command-host-prompt-limit'
 import { Button } from '../../ui/button'
 import { useConfirmationDialog } from '@/components/confirmation-dialog-context'
 import { getSettingOwnershipSummary } from '../page/setting-ownership'
@@ -389,6 +392,10 @@ export function QuickCommandsPane({
           repos={hostRepos}
           defaultAdvancedOpen
           agentPromptMaxLength={getTerminalQuickCommandHostPromptMaxLength(
+            { runtimeStatusByEnvironmentId: runtimeStatuses },
+            editor.hostId
+          )}
+          launchOptionsSupported={getTerminalQuickCommandHostLaunchOptionsSupported(
             { runtimeStatusByEnvironmentId: runtimeStatuses },
             editor.hostId
           )}

@@ -1,12 +1,14 @@
 import type { TerminalQuickCommand } from '../../../../../shared/terminal/quick-commands/terminal-quick-command-types'
 import {
   applyTerminalQuickCommandMutation,
+  isTerminalAgentQuickCommand,
   type TerminalQuickCommandMutation
 } from '../../../../../shared/terminal/quick-commands/terminal-quick-commands'
 import { isLegacyReadableTerminalQuickCommand } from '../../../../../shared/terminal/quick-commands/terminal-quick-command-prompt-limit'
 import {
   LEGACY_MAX_QUICK_COMMANDS,
   TERMINAL_QUICK_COMMAND_LARGE_LISTS_RUNTIME_CAPABILITY,
+  TERMINAL_QUICK_COMMAND_LAUNCH_OPTIONS_RUNTIME_CAPABILITY,
   TERMINAL_QUICK_COMMAND_LONG_PROMPTS_RUNTIME_CAPABILITY
 } from '../../../../../shared/terminal/quick-commands/terminal-quick-command-capabilities'
 import { InvalidArgumentError, type RpcContext } from '../../core'
@@ -20,11 +22,16 @@ export function projectTerminalQuickCommandsForClient(
   if (ctx.clientKind === undefined) {
     return commands
   }
+  const supported = ctx.clientCapabilities?.includes(
+    TERMINAL_QUICK_COMMAND_LAUNCH_OPTIONS_RUNTIME_CAPABILITY
+  )
+    ? commands
+    : commands.filter((command) => !isTerminalAgentQuickCommand(command) || !command.launchOptions)
   const readable = ctx.clientCapabilities?.includes(
     TERMINAL_QUICK_COMMAND_LONG_PROMPTS_RUNTIME_CAPABILITY
   )
-    ? commands
-    : commands.filter(isLegacyReadableTerminalQuickCommand)
+    ? supported
+    : supported.filter(isLegacyReadableTerminalQuickCommand)
   return ctx.clientCapabilities?.includes(TERMINAL_QUICK_COMMAND_LARGE_LISTS_RUNTIME_CAPABILITY)
     ? readable
     : readable.slice(0, LEGACY_MAX_QUICK_COMMANDS)

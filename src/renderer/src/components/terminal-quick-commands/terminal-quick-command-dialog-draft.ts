@@ -2,7 +2,10 @@ import {
   getTerminalQuickCommandScope,
   isTerminalAgentQuickCommand
 } from '../../../../shared/terminal/quick-commands/terminal-quick-commands'
-import type { TerminalQuickCommand } from '../../../../shared/terminal/quick-commands/terminal-quick-command-types'
+import type {
+  TerminalQuickCommand,
+  TerminalQuickCommandLaunchOptions
+} from '../../../../shared/terminal/quick-commands/terminal-quick-command-types'
 import type { TuiAgent } from '../../../../shared/agent-launch/catalog/tui-agent'
 
 export type TerminalQuickCommandDialogAction = 'terminal-command' | 'agent-prompt'
@@ -12,6 +15,7 @@ export type TerminalQuickCommandDialogDraftMemory = {
   terminalAppendEnter: boolean
   agent: TuiAgent
   agentPrompt: string
+  agentLaunchOptions: TerminalQuickCommandLaunchOptions | undefined
 }
 
 export function createTerminalQuickCommandDialogDraftMemory(
@@ -23,14 +27,16 @@ export function createTerminalQuickCommandDialogDraftMemory(
       terminalCommand: '',
       terminalAppendEnter: true,
       agent: command.agent,
-      agentPrompt: command.prompt
+      agentPrompt: command.prompt,
+      agentLaunchOptions: command.launchOptions
     }
   }
   return {
     terminalCommand: command.command,
     terminalAppendEnter: command.appendEnter,
     agent: fallbackAgent,
-    agentPrompt: ''
+    agentPrompt: '',
+    agentLaunchOptions: undefined
   }
 }
 
@@ -42,7 +48,8 @@ export function rememberTerminalQuickCommandDialogDraft(
     return {
       ...memory,
       agent: draft.agent,
-      agentPrompt: draft.prompt
+      agentPrompt: draft.prompt,
+      agentLaunchOptions: draft.launchOptions
     }
   }
   return {
@@ -75,7 +82,8 @@ export function switchTerminalQuickCommandDialogAction(
         ...base,
         action: 'agent-prompt',
         agent: nextMemory.agent,
-        prompt: nextMemory.agentPrompt
+        prompt: nextMemory.agentPrompt,
+        ...(nextMemory.agentLaunchOptions ? { launchOptions: nextMemory.agentLaunchOptions } : {})
       }
     }
   }

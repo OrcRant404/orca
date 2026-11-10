@@ -6,7 +6,10 @@ import {
   type MutableRefObject,
   type SetStateAction
 } from 'react'
-import type { TerminalQuickCommand } from '../../../../shared/terminal/quick-commands/terminal-quick-command-types'
+import type {
+  TerminalQuickCommand,
+  TerminalQuickCommandLaunchOptions
+} from '../../../../shared/terminal/quick-commands/terminal-quick-command-types'
 import type { TuiAgent } from '../../../../shared/agent-launch/catalog/tui-agent'
 import {
   isTerminalAgentQuickCommand,
@@ -27,6 +30,7 @@ import { useIntlLocale, useTranslate, type Translate } from '@/i18n/use-translat
 import { getTerminalQuickCommandAgentOptions } from './terminal-quick-command-agent-options'
 import type { TerminalQuickCommandDialogDraftMemory } from './terminal-quick-command-dialog-draft'
 import { TerminalQuickCommandAppendEnterSwitch } from './TerminalQuickCommandAppendEnterSwitch'
+import { TerminalQuickCommandLaunchOptionsFields } from './TerminalQuickCommandLaunchOptionsFields'
 
 const QUICK_COMMAND_AGENT_OPTIONS = getTerminalQuickCommandAgentOptions()
 const QUICK_COMMAND_PICKER_MODEL: NewTabAgentMenuModel = {
@@ -49,6 +53,7 @@ type TerminalQuickCommandContentSectionProps = {
   draft: TerminalQuickCommand
   isAgentAction: boolean
   selectedAgent: TuiAgent
+  launchOptionsSupported: boolean
   bodySize: TerminalQuickCommandBodySize
   draftMemoryRef: MutableRefObject<TerminalQuickCommandDialogDraftMemory>
   setDraft: Dispatch<SetStateAction<TerminalQuickCommand>>
@@ -94,6 +99,7 @@ export function TerminalQuickCommandContentSection({
   draft,
   isAgentAction,
   selectedAgent,
+  launchOptionsSupported,
   bodySize,
   draftMemoryRef,
   setDraft,
@@ -126,10 +132,36 @@ export function TerminalQuickCommandContentSection({
   )
   const selectAgent = useCallback(
     (nextAgent: TuiAgent) => {
-      draftMemoryRef.current = { ...draftMemoryRef.current, agent: nextAgent }
-      setDraft((current) =>
-        isTerminalAgentQuickCommand(current) ? { ...current, agent: nextAgent } : current
-      )
+      // Why: model IDs and their options are provider-specific, so a new agent starts from defaults.
+      const providerChanged = draftMemoryRef.current.agent !== nextAgent
+      draftMemoryRef.current = {
+        ...draftMemoryRef.current,
+        agent: nextAgent,
+        ...(providerChanged ? { agentLaunchOptions: undefined } : {})
+      }
+      setDraft((current) => {
+        if (!isTerminalAgentQuickCommand(current)) {
+          return current
+        }
+        if (current.agent === nextAgent) {
+          return current
+        }
+        const { launchOptions: _previous, ...rest } = current
+        return { ...rest, agent: nextAgent }
+      })
+    },
+    [draftMemoryRef, setDraft]
+  )
+  const setLaunchOptions = useCallback(
+    (launchOptions: TerminalQuickCommandLaunchOptions | undefined) => {
+      draftMemoryRef.current = { ...draftMemoryRef.current, agentLaunchOptions: launchOptions }
+      setDraft((current) => {
+        if (!isTerminalAgentQuickCommand(current)) {
+          return current
+        }
+        const { launchOptions: _previous, ...rest } = current
+        return launchOptions ? { ...rest, launchOptions } : rest
+      })
     },
     [draftMemoryRef, setDraft]
   )
@@ -186,6 +218,13 @@ export function TerminalQuickCommandContentSection({
               setupDisabled
               disabled={disabled || !isAgentAction}
               onPick={selectAgent}
+            />
+            <TerminalQuickCommandLaunchOptionsFields
+              disabled={disabled || !isAgentAction}
+              hostSupported={launchOptionsSupported}
+              agent={selectedAgent}
+              launchOptions={isTerminalAgentQuickCommand(draft) ? draft.launchOptions : undefined}
+              onChange={setLaunchOptions}
             />
           </div>
         </div>

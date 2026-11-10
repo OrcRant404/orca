@@ -8,6 +8,7 @@ import {
   supportsTerminalAgentQuickCommand
 } from '../terminal/quick-commands/terminal-quick-commands'
 import type { TerminalQuickCommand } from '../terminal/quick-commands/terminal-quick-command-types'
+import { TerminalQuickCommandLaunchOptionsSchema } from '../terminal/quick-commands/terminal-quick-command-launch-options'
 
 export const TerminalQuickCommandScopeUpdate = z.discriminatedUnion('type', [
   z.object({ type: z.literal('global') }).strict(),
@@ -40,6 +41,7 @@ export const TerminalQuickCommandUpdateItem = z.union([
       }),
       // Bounded where every save lands (main's settings update), with the reason in its refusal.
       prompt: z.string(),
+      launchOptions: TerminalQuickCommandLaunchOptionsSchema.optional(),
       scope: TerminalQuickCommandScopeUpdate.optional()
     })
     .strict()

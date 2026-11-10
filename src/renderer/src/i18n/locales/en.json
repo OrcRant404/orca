@@ -4144,6 +4144,14 @@
               "3834d24243": "Project",
               "b83efc79e2": "Global",
               "c25cf350ef": "Scope"
+            },
+            "TerminalQuickCommandLaunchOptionsFields": {
+              "default": "Default",
+              "model": "Model ID",
+              "effort": "Effort",
+              "fast": "Fast",
+              "hint": "Optional. Setting a model opens a Chat with these options; the prompt can then be blank.",
+              "host_unsupported": "Update Orca on this host to set a model."
             }
           }
         },

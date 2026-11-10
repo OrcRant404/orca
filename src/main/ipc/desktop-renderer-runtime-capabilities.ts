@@ -11,6 +11,7 @@ import {
   AGENT_LAUNCH_TAB_CLOSED_CLIENT_CAPABILITY
 } from '../../shared/agent-launch/contracts/agent-launch-runtime-capability'
 import {
+  TERMINAL_QUICK_COMMAND_LAUNCH_OPTIONS_RUNTIME_CAPABILITY,
   TERMINAL_QUICK_COMMAND_LARGE_LISTS_RUNTIME_CAPABILITY,
   TERMINAL_QUICK_COMMAND_LONG_PROMPTS_RUNTIME_CAPABILITY
 } from '../../shared/terminal/quick-commands/terminal-quick-command-capabilities'
@@ -28,5 +29,6 @@ export const DESKTOP_RENDERER_RUNTIME_CLIENT_CAPABILITIES: readonly RuntimeCapab
   // Treat closed launch tabs as silent cancellation instead of unknown failure.
   AGENT_LAUNCH_TAB_CLOSED_CLIENT_CAPABILITY,
   TERMINAL_QUICK_COMMAND_LONG_PROMPTS_RUNTIME_CAPABILITY,
+  TERMINAL_QUICK_COMMAND_LAUNCH_OPTIONS_RUNTIME_CAPABILITY,
   TERMINAL_QUICK_COMMAND_LARGE_LISTS_RUNTIME_CAPABILITY
 ] as const

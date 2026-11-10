@@ -9,7 +9,8 @@ import {
   getTerminalQuickCommandScope,
   isTerminalAgentQuickCommand
 } from '../../../../../shared/terminal/quick-commands/terminal-quick-commands'
-import { AgentIcon, getAgentLabel } from '@/lib/agent-catalog'
+import { AgentIcon } from '@/lib/agent-catalog'
+import { formatTerminalAgentQuickCommandPreview } from '@/components/terminal-quick-commands/terminal-agent-quick-command-preview'
 import { useClipboardTextCopyFeedback } from '@/hooks/use-clipboard-text-copy-feedback'
 import { cn } from '@/lib/utils'
 import { translate } from '@/i18n/i18n'
@@ -97,7 +98,7 @@ function QuickCommandRow({
           ) : null}
           <span className={cn('truncate', isTerminalAgentQuickCommand(command) ? '' : 'font-mono')}>
             {isTerminalAgentQuickCommand(command)
-              ? `${getAgentLabel(command.agent)}: ${body}`
+              ? formatTerminalAgentQuickCommandPreview(command)
               : body ||
                 t('auto.components.settings.QuickCommandsPane.0252ddd578', 'No command text')}
           </span>

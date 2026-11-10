@@ -6,6 +6,7 @@ import type {
   TerminalQuickCommandAction,
   TerminalQuickCommandScope
 } from './terminal-quick-command-types'
+import { TerminalQuickCommandLaunchOptionsSchema } from './terminal-quick-command-launch-options'
 
 export const MAX_QUICK_COMMAND_ID_LENGTH = 80
 export const MAX_QUICK_COMMAND_LABEL_LENGTH = 80
@@ -74,8 +75,15 @@ export function getTerminalQuickCommandBody(command: TerminalQuickCommand): stri
   return isTerminalAgentQuickCommand(command) ? command.prompt : command.command
 }
 
+export function isTerminalQuickCommandRunnable(command: TerminalQuickCommand): boolean {
+  return isTerminalAgentQuickCommand(command)
+    ? supportsTerminalAgentQuickCommand(command.agent) &&
+        Boolean(command.prompt.trim() || command.launchOptions?.model.trim())
+    : Boolean(command.command.trim())
+}
+
 export function isTerminalQuickCommandComplete(command: TerminalQuickCommand): boolean {
-  return command.label.trim().length > 0 && getTerminalQuickCommandBody(command).trim().length > 0
+  return command.label.trim().length > 0 && isTerminalQuickCommandRunnable(command)
 }
 
 export function normalizeTerminalQuickCommands(input: unknown): TerminalQuickCommand[] {
@@ -105,7 +113,11 @@ export function normalizeTerminalQuickCommands(input: unknown): TerminalQuickCom
       continue
     }
     const agent = supportsTerminalAgentQuickCommand(record.agent) ? record.agent : null
-    if (action === 'agent-prompt' && agent === null) {
+    const launchOptions = TerminalQuickCommandLaunchOptionsSchema.safeParse(record.launchOptions)
+    if (
+      action === 'agent-prompt' &&
+      (agent === null || (record.launchOptions !== undefined && !launchOptions.success))
+    ) {
       continue
     }
     const label = hasLabel ? String(record.label).trim() : ''
@@ -129,12 +141,12 @@ export function normalizeTerminalQuickCommands(input: unknown): TerminalQuickCom
       if (agent === null) {
         continue
       }
-      const agentId = agent
       normalized.push({
         ...base,
         action: 'agent-prompt',
-        agent: agentId,
-        prompt: hasPrompt ? String(record.prompt).trimEnd() : ''
+        agent,
+        prompt: hasPrompt ? String(record.prompt).trimEnd() : '',
+        ...(launchOptions.success ? { launchOptions: launchOptions.data } : {})
       })
     } else {
       const command = hasCommand ? String(record.command).trimEnd() : ''
@@ -186,8 +198,20 @@ function isNormalizedTerminalQuickCommand(value: unknown, expected: TerminalQuic
     return false
   }
   if (isTerminalAgentQuickCommand(expected)) {
+    const keys = ['id', 'label', 'action', 'agent', 'prompt', 'scope']
+    if (expected.launchOptions) {
+      keys.push('launchOptions')
+      const options = command.launchOptions as Record<string, unknown>
+      const expectedOptions = Object.entries(expected.launchOptions)
+      if (
+        !hasExactKeys(options, Object.keys(expected.launchOptions)) ||
+        expectedOptions.some(([key, value]) => options[key] !== value)
+      ) {
+        return false
+      }
+    }
     return (
-      hasExactKeys(command, ['id', 'label', 'action', 'agent', 'prompt', 'scope']) &&
+      hasExactKeys(command, keys) &&
       command.action === 'agent-prompt' &&
       command.agent === expected.agent &&
       command.prompt === expected.prompt

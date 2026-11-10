@@ -5,7 +5,7 @@ import { newAgentLaunchRequestId } from '@/lib/agent-session/launch/routing/agen
 import {
   flattenTerminalQuickCommand,
   isTerminalAgentQuickCommand,
-  supportsTerminalAgentQuickCommand
+  isTerminalQuickCommandRunnable
 } from '../../../shared/terminal/quick-commands/terminal-quick-commands'
 import type { TerminalQuickCommand } from '../../../shared/terminal/quick-commands/terminal-quick-command-types'
 
@@ -50,13 +50,16 @@ export function runQuickCommandInNewTab({
 }: RunQuickCommandInNewTabArgs): { tabId: string } | null {
   const targetGroupId = groupId ?? undefined
   if (isTerminalAgentQuickCommand(command)) {
-    if (!command.prompt.trim() || !supportsTerminalAgentQuickCommand(command.agent)) {
+    if (!isTerminalQuickCommandRunnable(command)) {
       return null
     }
     const result = launchAgentInNewTab({
       requestId: newAgentLaunchRequestId(),
       agent: command.agent,
       prompt: command.prompt,
+      ...(command.launchOptions
+        ? { requestedSurface: 'chat' as const, sessionOptions: command.launchOptions }
+        : {}),
       worktreeId,
       groupId: targetGroupId,
       ...(command.agent === 'opencode' || command.agent === 'opencode2'
