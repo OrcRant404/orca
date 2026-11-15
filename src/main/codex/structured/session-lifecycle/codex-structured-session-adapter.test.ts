@@ -20,6 +20,25 @@ import type {
 } from './codex-structured-session-state'
 
 describe('CodexStructuredSessionAdapter.acquire', () => {
+  it('opens a fork using the acquired settings before publishing it', async () => {
+    const codex = fakeCodex()
+    const adapter = adapterFor(codex, { resumeThreadId: 'fork-child', model: 'gpt-6-astra' })
+    await acquireReadyCodexForTest(adapter, {
+      identity: identityFor('session-1'),
+      fence: 7,
+      spawnToken: 'spawn-9',
+      options: { model: 'gpt-6.1-sol', effort: 'xhigh', serviceTier: 'priority' }
+    })
+    expect(
+      codex.connections[0].calls.find((call) => call.method === 'thread/resume')?.params
+    ).toMatchObject({
+      threadId: 'fork-child',
+      model: 'gpt-6.1-sol',
+      serviceTier: 'priority',
+      config: { model_reasoning_effort: 'xhigh' }
+    })
+  })
+
   it('keeps current intent usable without inventing controls when a listing fails', async () => {
     const codex = fakeCodex({
       'model/list': () => {

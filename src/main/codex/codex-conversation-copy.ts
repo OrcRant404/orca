@@ -1,3 +1,6 @@
+import { isAgentChatPermissionMode } from '../../shared/agent-launch/permissions/agent-chat-permission-mode'
+import { codexThreadOptionOverrides } from './structured/threads/codex-structured-thread-option-overrides'
+import { codexStructuredPermissionPolicy } from '../../shared/codex-permission-policy'
 import { AgentConversationCopyError } from '../native-chat/agent-conversation-copy-error'
 import { join } from 'node:path'
 import { requireLegacyAgentSessionAccountHome } from '../../shared/agent-session/lifecycle/agent-session-account-home'
@@ -211,7 +214,13 @@ export async function copyCodexConversation(
           threadId: input.providerSessionId,
           ...(lastTurnId ? { lastTurnId } : beforeTurnId ? { beforeTurnId } : {}),
           excludeTurns: true,
-          cwd
+          cwd,
+          ...codexThreadOptionOverrides(record.options),
+          ...(record.permissionMode === 'own'
+            ? {}
+            : codexStructuredPermissionPolicy(
+                isAgentChatPermissionMode(record.permissionMode) ? record.permissionMode : 'ask'
+              ))
         })
       )
       const thread = asRecord(fork?.thread)

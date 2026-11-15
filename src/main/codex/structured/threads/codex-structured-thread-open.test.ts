@@ -175,3 +175,68 @@ it('keeps an exact active-writer refusal typed through cleanup wrapping', async 
   )
   expect(request).toHaveBeenCalledOnce()
 })
+
+it('resumes with the selected parent model, effort, speed and personality before any turn', async () => {
+  const request = vi.fn(async (_method: string, _params?: Record<string, unknown>) => ({
+    thread: { id: 'fork-child' }
+  }))
+  await openCodexThread(
+    connectionFor(request),
+    {
+      cwd: '/workspace',
+      resumeThreadId: 'fork-child',
+      model: 'gpt-6-astra',
+      options: {
+        model: 'gpt-6.1-sol',
+        effort: 'xhigh',
+        serviceTier: 'priority',
+        personality: 'pragmatic'
+      },
+      permissionPolicy: codexStructuredPermissionPolicy('auto'),
+      threadConfig: { 'features.visual_artifacts': true },
+      commandEnv: { ORCA_SESSION: 'child-session' }
+    },
+    2000
+  )
+  expect(request).toHaveBeenCalledWith(
+    'thread/resume',
+    {
+      threadId: 'fork-child',
+      excludeTurns: true,
+      cwd: '/workspace',
+      model: 'gpt-6.1-sol',
+      serviceTier: 'priority',
+      approvalPolicy: 'on-request',
+      sandbox: 'workspace-write',
+      approvalsReviewer: 'auto_review',
+      config: {
+        'features.visual_artifacts': true,
+        model_reasoning_effort: 'xhigh',
+        personality: 'pragmatic',
+        'shell_environment_policy.set.ORCA_SESSION': 'child-session'
+      }
+    },
+    { timeoutMs: 2000 }
+  )
+})
+
+it('preserves explicit standard speed and leaves unspecified options to Codex', async () => {
+  const request = vi.fn(async (_method: string, _params?: Record<string, unknown>) => ({
+    thread: { id: 'fork-child' }
+  }))
+  await openCodexThread(
+    connectionFor(request),
+    {
+      cwd: '/workspace',
+      resumeThreadId: 'fork-child',
+      options: { serviceTier: 'default' }
+    },
+    2000
+  )
+  expect(request.mock.calls[0]?.[1]).toEqual({
+    threadId: 'fork-child',
+    excludeTurns: true,
+    cwd: '/workspace',
+    serviceTier: null
+  })
+})

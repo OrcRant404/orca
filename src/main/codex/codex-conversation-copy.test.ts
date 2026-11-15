@@ -85,14 +85,21 @@ async function history(id: string, records: object[]) {
   state.paths.set(id, path)
   return path
 }
-function copy(selected = `${SOURCE}:a1`, settled = true, turnId?: string) {
+function copy(
+  selected = `${SOURCE}:a1`,
+  settled = true,
+  turnId?: string,
+  options?: Record<string, string>
+) {
   return copyCodexConversation(
     {
       record: agentSessionRecordFixture({
         sessionId: 'orca-source',
         provider: 'codex',
         accountHome: { variable: 'CODEX_HOME', path: root },
-        launchArgs: ['--model', 'saved-model']
+        launchArgs: ['--model', 'saved-model'],
+        permissionMode: 'auto',
+        ...(options ? { options } : {})
       }),
       identity: {
         sessionId: 'orca-source',
@@ -224,7 +231,10 @@ it('forks and reverts only the child for legacy, legacy, canonical, counting aga
   expect(state.request).toHaveBeenCalledWith('thread/fork', {
     threadId: SOURCE,
     excludeTurns: true,
-    cwd: root
+    cwd: root,
+    approvalPolicy: 'on-request',
+    sandbox: 'workspace-write',
+    approvalsReviewer: 'auto_review'
   })
 })
 
@@ -316,5 +326,29 @@ it('certifies recorded turns in a standalone copied rollout with no physical his
   await expect(copy(undefined, true, String(started.payload.turn_id))).resolves.toEqual({
     sessionId: CHILD,
     coverage: { unit: 'codex-turn', ids: ['01a1b0d7-ac1d-7e00-85b8-806a4d8d494b'] }
+  })
+})
+
+it('creates the fork on the parent settings before a different configured model can take effect', async () => {
+  await history(SOURCE, turn('canonical', 1))
+  await childPrefix()
+  state.request.mockResolvedValue({ thread: { id: CHILD } })
+  await copy(undefined, true, undefined, {
+    model: 'gpt-6.1-sol',
+    effort: 'xhigh',
+    serviceTier: 'priority',
+    personality: 'pragmatic'
+  })
+  expect(state.request).toHaveBeenCalledWith('thread/fork', {
+    threadId: SOURCE,
+    lastTurnId: 'canonical',
+    excludeTurns: true,
+    cwd: root,
+    model: 'gpt-6.1-sol',
+    serviceTier: 'priority',
+    config: { model_reasoning_effort: 'xhigh', personality: 'pragmatic' },
+    approvalPolicy: 'on-request',
+    sandbox: 'workspace-write',
+    approvalsReviewer: 'auto_review'
   })
 })

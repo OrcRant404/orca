@@ -1,3 +1,4 @@
+import { codexThreadOptionOverrides } from './codex-structured-thread-option-overrides'
 import '../../../native-chat/agent-session-wire/providers/structured-agent-session-adapter'
 import { AgentSessionAcquisitionRefusal } from '../../../native-chat/agent-session-wire/providers/structured-agent-session-adapter-errors'
 import {
@@ -65,6 +66,7 @@ export async function openCodexThread(
     permissionPolicy?: CodexStructuredPermissionPolicy
     /** Avoid a duplicate base prompt caused by switching models on the first turn. */
     model?: string
+    options?: Readonly<Record<string, string>>
     threadConfig?: Record<string, unknown>
     commandEnv?: Record<string, string>
   },
@@ -73,26 +75,31 @@ export async function openCodexThread(
   signal?: AbortSignal
 ): Promise<CodexOpenedThread> {
   const resumeThreadId = launch.resumeThreadId
-  const config = { ...launch.threadConfig, ...shellEnvironmentSetConfig(launch.commandEnv) }
+  const { config: optionConfig, ...optionOverrides } = codexThreadOptionOverrides({
+    ...(launch.model ? { model: launch.model } : {}),
+    ...launch.options
+  })
+  const config = {
+    ...launch.threadConfig,
+    ...optionConfig,
+    ...shellEnvironmentSetConfig(launch.commandEnv)
+  }
   const threadSettings = {
     cwd: launch.cwd,
     ...launch.permissionPolicy,
+    ...optionOverrides,
     ...(Object.keys(config).length > 0 ? { config } : {})
   }
   const startThread = (): Promise<unknown> => {
     throwIfSignalAborted(signal)
-    return connection.request(
-      'thread/start',
-      { ...threadSettings, ...(launch.model ? { model: launch.model } : {}) },
-      { timeoutMs }
-    )
+    return connection.request('thread/start', threadSettings, { timeoutMs })
   }
   let supersededThreadId: string | undefined
   let opened: unknown
   if (!resumeThreadId) {
     opened = await startThread()
   } else {
-    // Omitting model preserves the resumed thread's model, provider and effort.
+    // Apply the chat's selected settings before Codex can fall back to global defaults.
     const resumeParams = {
       threadId: resumeThreadId,
       ...threadSettings

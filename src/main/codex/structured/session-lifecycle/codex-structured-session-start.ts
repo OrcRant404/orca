@@ -106,7 +106,7 @@ export async function openCodexStructuredSession(
   const opened = await waitForPromiseWithSignal(
     openCodexThread(
       connection,
-      { ...threadLaunch, commandEnv },
+      { ...threadLaunch, commandEnv, options: input.options },
       // Long rollout/MCP setup relies on the host ceiling and cancellation unless a timeout is supplied.
       deps.requestTimeoutMs ?? null,
       openInput.signal
