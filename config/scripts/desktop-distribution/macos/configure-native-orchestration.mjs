@@ -174,7 +174,7 @@ const markerEnd = '<!-- orca-agent-routing:end -->'
 const routingBlock = `${markerStart}
 ## User's saved worker routing
 
-For substantial tasks in an Orca lead chat, including Orca Mobile, read
+For research, codebase exploration, implementation, or visual work in an Orca lead chat, including Orca Mobile, read
 \`../orca-agent-routing/SKILL.md\` relative to this file and its saved profiles.
 Apply those user-authorized specialist/model/settings choices without requiring
 a desktop shortcut. They override the generic worker-selection defaults; keep

@@ -2,9 +2,9 @@
 name: orca-agent-routing
 description: >-
   Select and supervise specialist workers using this user's saved Orca agent
-  shortcuts and Paseo profile notes. Apply by default to substantial tasks in
-  an Orca lead chat, including a chat opened from Orca Mobile, without requiring
-  a shortcut or slash command. Requires Orca session context or an explicit
+  shortcuts and Paseo profile notes. Apply by default to research, codebase
+  exploration, implementation, and visual work in an Orca lead chat, including
+  Orca Mobile, without requiring a shortcut or slash command. Requires Orca session context or an explicit
   request to use Orca. Excludes ordinary mobile-app work and Paseo-led tasks.
 ---
 
@@ -44,7 +44,21 @@ Paseo notes. After an Orca update, rerun the installer if the loader link or any
 provider's skill discovery is missing; the standalone routing skill is separate
 from Orca's bundled lifecycle guide.
 
-Apply these choices in order; an explicit user choice always wins:
+Choose by the current assignment; an explicit user choice always wins. Before
+implementation, route bounded discovery to Haiku or Luna. Bundle related lookups
+into one assignment. Use Haiku for one short question or isolated small edit; use
+Luna for a sequence of related searches, research steps, documentation changes,
+or small edits that benefit from continuing context. Do not classify work as
+Sol work merely because it touches several files. Use Sol for complex debugging,
+substantial implementation, integration, or broad refactors.
+
+Use Terra for screenshot/asset inspection, visual QA, drawings, and source-grounded
+writing. For work with a rendered UI, assign bounded visual inspection to Terra
+when applicable; provide screenshots or artifacts if Terra lacks the app tools.
+If the required evidence or tools are unavailable, report that limitation. Claude
+implements UI changes and performs independent plan/code reviews at Medium.
+
+Apply the role boundaries below:
 
 | Work                                                                                                            | Profile key | Session use                                  |
 | --------------------------------------------------------------------------------------------------------------- | ----------- | -------------------------------------------- |
@@ -67,7 +81,7 @@ continuing bounded assignment, not an open-ended project. Escalate complex debug
 or broad implementation to Sol. Routine code searches are Haiku/Luna work.
 For ongoing bounded work, prefer Luna over starting another short-task Haiku.
 The lead owns image concepts, visual direction, image briefs, and design critique;
-Claude implements the UI. Terra may critique the rendered result. Assign app or
+Claude implements the UI. Terra checks the rendered result when applicable. Assign app or
 image actions only after checking that worker's own tools. Workers do not inherit
 the lead's connected tools. Escalate complex work to Sol or the lead.
 For a user-named model without a saved profile, use the appropriate role's saved
@@ -156,8 +170,12 @@ without a successful launch receipt.
 
 ## Coordinate and verify
 
-Reuse only successful idle workers owned by this Run with matching model,
-effort, permissions, project, and useful context. Haiku starts fresh for each new task unless the
+Choose the role before choosing a session to reuse. An idle Opus or Sol session
+does not take over a new Haiku/Luna/Terra assignment merely because it already
+knows the project. A small follow-up that belongs to the same UI implementation
+can remain with its UI worker; routine research or documentation is assigned by
+its own role. Reuse only successful idle workers owned by this Run with matching
+model, effort, permissions, project, and useful context. Haiku starts fresh for each new task unless the
 user explicitly asks to resume. Keep a successful Luna worker for related bounded
 follow-ups and re-read files changed since its last assignment. Keep Sol, Terra,
 Claude, or Grok only while their context is useful to the current work. Independent
@@ -171,6 +189,8 @@ sessions get a fresh replacement rather than automatic reuse. Give each follow-u
 constraints, and acceptance checks; never assign concurrent tasks to one worker.
 Preserve unrelated edits. Use the current workspace for read-only or disjoint
 assignments; let Orca create a worktree when edits conflict. Use `orchestration send`
-for follow-ups and the guide's reply/completion flow. Review worker evidence,
-integrate, and verify the outcome before reporting completion. Distinguish saved
+for follow-ups and the guide's reply/completion flow. Briefly state each chosen role and the task fit before dispatch. When using Sol
+or Opus for an otherwise bounded research/small-edit assignment, state the
+complexity or capability that requires it. Review worker evidence, integrate,
+and verify the outcome before reporting completion. Distinguish saved
 configuration, actual worker launch, rendered UI, and on-phone verification.
