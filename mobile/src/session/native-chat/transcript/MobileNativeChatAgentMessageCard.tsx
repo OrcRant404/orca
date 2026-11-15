@@ -19,7 +19,10 @@ import { useMobileTranslation } from '../../../i18n/use-mobile-translation'
 import { colors } from '../../../theme/mobile-theme'
 import { styles } from './mobile-agent-message-card-styles'
 import { useMobileColorScheme } from '../../../theme/use-mobile-color-scheme'
-import { useMobileAgentMessageView } from './mobile-agent-message-context'
+import {
+  useMobileAgentMessageView,
+  useMobileAgentTaskAssigned
+} from './mobile-agent-message-context'
 import { MobileAgentMessageSenders } from './MobileAgentMessageSenders'
 import { MobileNativeChatMessageTime } from './MobileNativeChatMessageTime'
 import { useMobileNativeChatDisclosure } from './mobile-native-chat-disclosure-store'
@@ -46,7 +49,9 @@ export const MobileNativeChatAgentMessageCard = memo(function MobileNativeChatAg
   const t = useMobileTranslation()
   const text = mobileNativeChatDisplayCopyText(message)
   const [open, setOpen] = useMobileNativeChatDisclosure(`agent-message:${message.id}`, false)
+  const taskAssigned = useMobileAgentTaskAssigned(agentMessagePrimarySender(from))
   const headings: Record<AgentMessageHeading, string> = {
+    launching: t('chat.agentMessage.launching', 'Launching'),
     started: t('chat.agentMessage.startedWorker', 'Started worker'),
     'handed-off': t('chat.agentMessage.handedOffToAgent', 'Handed off to agent'),
     'started-agent': t('chat.agentMessage.startedAgent', 'Started agent'),
@@ -55,7 +60,7 @@ export const MobileNativeChatAgentMessageCard = memo(function MobileNativeChatAg
     worker: t('chat.agentMessage.updateFromWorker', 'Update from worker'),
     generic: t('chat.agentMessage.messageFrom', 'Message from')
   }
-  const heading = headings[agentMessageHeading(from, message)]
+  const heading = headings[agentMessageHeading(from, message, taskAssigned)]
   const expandable =
     agentMessageCanCopy(text) || message.blocks.some((block) => block.type === 'image-ref')
   const Chevron = open ? ChevronUp : ChevronDown

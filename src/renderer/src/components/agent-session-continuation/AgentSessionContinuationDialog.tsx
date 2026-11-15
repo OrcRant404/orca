@@ -1,8 +1,9 @@
+import { AgentSessionContinuationContextPicker } from './AgentSessionContinuationContextPicker'
 import { useAgentPickerDraftScope } from '../agent/AgentLaunchSetupButton'
 import { agentsOfferedForLaunch } from '@/lib/host-chat-program'
 import { worktreeLaunchWorkspace } from '@/lib/agent-session/launch/routing/agent-launch-route-input'
 import { useEffect, useRef, useState } from 'react'
-import { Loader2, MessageSquarePlus } from 'lucide-react'
+import { GitFork, Loader2, MessageSquarePlus } from 'lucide-react'
 import { AgentLaunchPicker } from '@/components/agent/AgentLaunchPicker'
 import {
   agentPickerFreshLaunchInputs,
@@ -21,13 +22,7 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select'
+
 import { useTranslate } from '@/i18n/use-translate'
 import { getAgentCatalog, getAgentLabel } from '@/lib/agent-catalog'
 import {
@@ -47,6 +42,7 @@ import {
 
 type AgentSessionContinuationDialogProps = {
   open: boolean
+  intent?: 'handoff' | 'fork'
   request: AgentSessionContinuationRequest | null
   sourceWorkingDirectory?: string
   onOpenChange: (open: boolean) => void
@@ -58,6 +54,7 @@ const EMPTY_DISABLED_AGENTS: TuiAgent[] = []
 
 export function AgentSessionContinuationDialog({
   open,
+  intent = 'handoff',
   request,
   sourceWorkingDirectory,
   onOpenChange,
@@ -94,7 +91,12 @@ export function AgentSessionContinuationDialog({
       setStartingFor(null)
     }
   }
-  const contextMode = contextPick?.request === request ? contextPick.mode : 'focused'
+  const contextMode =
+    contextPick?.request === request
+      ? contextPick.mode
+      : intent === 'fork' && request && hasFullAgentSessionContext(request.source)
+        ? 'full'
+        : 'focused'
   const starting = open && startingFor?.request === request
   const [showStarting, setShowStarting] = useState(false)
   const disabledAgents = settings?.disabledTuiAgents ?? EMPTY_DISABLED_AGENTS
@@ -121,8 +123,10 @@ export function AgentSessionContinuationDialog({
     observation.model.state === 'settled'
       ? {
           ...observation.model,
-          rows: observation.model.rows.filter((row) =>
-            agents.some((agent) => agent.id === row.agent)
+          rows: observation.model.rows.filter(
+            (row) =>
+              agents.some((agent) => agent.id === row.agent) &&
+              (intent !== 'fork' || row.kind === 'chat')
           )
         }
       : observation.model
@@ -169,7 +173,10 @@ export function AgentSessionContinuationDialog({
       sourceAgent: request?.avoidSourceAgent ? null : (request?.source.sourceAgent ?? null),
       defaultAgent: settings?.defaultTuiAgent
     })
-  const selection = observation.selectionFor(selectedAgent, currentPick?.surface)
+  const selection = observation.selectionFor(
+    selectedAgent,
+    intent === 'fork' ? 'chat' : currentPick?.surface
+  )
 
   useEffect(() => {
     if (!starting) {
@@ -192,7 +199,7 @@ export function AgentSessionContinuationDialog({
     ) {
       return
     }
-    const prompt = buildAgentSessionContinuationPrompt(request.source, contextMode)
+    const prompt = buildAgentSessionContinuationPrompt(request.source, contextMode, intent)
     if (!prompt) {
       return
     }
@@ -202,6 +209,7 @@ export function AgentSessionContinuationDialog({
     setStartingFor(start)
     const launched = await launchAgentSessionContinuation({
       agent: selectedAgent,
+      intent,
       prompt,
       worktreeId: request.worktreeId,
       groupId: request.groupId,
@@ -241,14 +249,25 @@ export function AgentSessionContinuationDialog({
       <DialogContent className="min-w-0 sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-sm">
-            <MessageSquarePlus className="size-4" />
-            {t('components.agentSessionContinuation.dialogTitle', 'Hand Off to Another Agent')}
+            {intent === 'fork' ? (
+              <GitFork className="size-4" />
+            ) : (
+              <MessageSquarePlus className="size-4" />
+            )}
+            {intent === 'fork'
+              ? t('components.agentSessionContinuation.forkTitle', 'Fork Chat from This Turn')
+              : t('components.agentSessionContinuation.dialogTitle', 'Hand Off to Another Agent')}
           </DialogTitle>
           <DialogDescription className="text-xs">
-            {t(
-              'components.agentSessionContinuation.dialogDescription',
-              'Start a fresh Agent session from this stopping point. The original session stays unchanged.'
-            )}
+            {intent === 'fork'
+              ? t(
+                  'components.agentSessionContinuation.forkDescription',
+                  'Start an independent chat with context through the selected turn. Later messages are excluded. Your original chat stays unchanged.'
+                )
+              : t(
+                  'components.agentSessionContinuation.dialogDescription',
+                  'Start a fresh Agent session from this stopping point. The original session stays unchanged.'
+                )}
           </DialogDescription>
         </DialogHeader>
 
@@ -275,6 +294,7 @@ export function AgentSessionContinuationDialog({
             </label>
             <AgentLaunchPicker
               draftScope={draftScope}
+              surfaceConstraint={intent === 'fork' ? 'chat' : undefined}
               disabled={controlsDisabled}
               model={destinationModel}
               worktreeId={request?.worktreeId}
@@ -324,58 +344,15 @@ export function AgentSessionContinuationDialog({
             </div>
           </div>
 
-          <div className="min-w-0 space-y-1.5">
-            <label className="text-xs font-medium">
-              {t('components.agentSessionContinuation.context', 'Context')}
-            </label>
-            <Select
-              disabled={controlsDisabled}
-              value={contextMode}
-              onValueChange={(value) => {
-                if (value === 'focused' || value === 'full') {
-                  setContextPick({ request, mode: value })
-                }
-              }}
-            >
-              <SelectTrigger className="min-w-0 w-full" size="sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="focused">
-                  {t(
-                    'components.agentSessionContinuation.modeFocused',
-                    'Focused handoff (Recommended)'
-                  )}
-                </SelectItem>
-                <SelectItem value="full" disabled={!hasFullContext}>
-                  {t('components.agentSessionContinuation.modeFull', 'Full session transcript')}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="min-h-12 text-[11px] leading-4 text-muted-foreground">
-              {preparing
-                ? null
-                : !hasFullContext
-                  ? request?.source.sourceKind === 'chat'
-                    ? t(
-                        'components.agentSessionContinuation.modeLoadedDescription',
-                        'Uses recent messages currently loaded in this chat and the current workspace.'
-                      )
-                    : t(
-                        'components.agentSessionContinuation.modeCapturedDescription',
-                        'Uses captured text and the current workspace.'
-                      )
-                  : contextMode === 'focused'
-                    ? t(
-                        'components.agentSessionContinuation.modeFocusedDescription',
-                        'Uses the latest status and current workspace, reading older transcript details only when needed.'
-                      )
-                    : t(
-                        'components.agentSessionContinuation.modeFullDescription',
-                        'Asks the new Agent to read the complete saved session before continuing. This can take longer and use significant context, plan usage, or API credits.'
-                      )}
-            </p>
-          </div>
+          <AgentSessionContinuationContextPicker
+            intent={intent}
+            mode={contextMode}
+            disabled={controlsDisabled}
+            preparing={preparing}
+            hasFullContext={hasFullContext}
+            sourceKind={request?.source.sourceKind}
+            onChange={(mode) => setContextPick({ request, mode })}
+          />
 
           <div className="min-h-4 text-[11px] text-muted-foreground">
             {workingDirectory ? (
@@ -400,7 +377,9 @@ export function AgentSessionContinuationDialog({
             {showStarting ? <Loader2 className="size-3.5 animate-spin" /> : null}
             {starting
               ? t('components.agentSessionContinuation.starting', 'Starting…')
-              : t('components.agentSessionContinuation.startSession', 'Start New Session')}
+              : intent === 'fork'
+                ? t('components.agentSessionContinuation.createFork', 'Create Fork')
+                : t('components.agentSessionContinuation.startSession', 'Start New Session')}
           </Button>
         </DialogFooter>
       </DialogContent>

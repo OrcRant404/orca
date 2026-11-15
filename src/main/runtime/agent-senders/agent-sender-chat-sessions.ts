@@ -73,7 +73,8 @@ export function readAgentSenderSessions(
               destinationId
             ),
             worktreeId: destination.location.workspaceId,
-            sessionId: destinationId
+            sessionId: destinationId,
+            taskAssigned: destination.lastTurn !== undefined
           }
         ]
   })

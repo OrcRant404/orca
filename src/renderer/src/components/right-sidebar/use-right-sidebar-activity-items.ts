@@ -1,5 +1,6 @@
+import { useVisibleTeamPanes } from '../orchestration-crew/use-visible-team-panes'
 import { useMemo } from 'react'
-import { Plug, Files, GitBranch, ListChecks, Workflow } from 'lucide-react'
+import { Plug, Files, GitBranch, ListChecks, Workflow, Users } from 'lucide-react'
 import { useAppStore } from '@/store'
 import { useRepoById } from '@/store/repos/use-repository-catalog'
 import { isFolderRepo } from '../../../../shared/repo-kind'
@@ -37,6 +38,7 @@ export function useRightSidebarActivityItems({
   rightSidebarOpen: boolean
 }): RightSidebarActivityItems {
   const t = useTranslate()
+  const hasTeam = useVisibleTeamPanes().length > 0
   const languageRevision = useUiLanguageRevision()
   const explorerShortcut = useShortcutLabel('sidebar.explorer.toggle')
   const sourceControlShortcut = useShortcutLabel('sidebar.sourceControl.toggle')
@@ -84,6 +86,12 @@ export function useRightSidebarActivityItems({
         id: 'vault',
         icon: AgentSessionHistoryIcon,
         title: t('auto.components.right.sidebar.index.aiVaultSessionHistory', 'Agents'),
+        shortcut: ''
+      },
+      {
+        id: 'team',
+        icon: Users,
+        title: t('components.orchestrationCrew.team', 'Team'),
         shortcut: ''
       },
       {
@@ -139,12 +147,15 @@ export function useRightSidebarActivityItems({
 
   const visibleItems = useMemo(
     () =>
-      getVisibleRightSidebarActivityItems(activityItems, {
-        isFolder,
-        isFolderWorkspace,
-        hasSshHost
-      }),
-    [activityItems, isFolder, isFolderWorkspace, hasSshHost]
+      getVisibleRightSidebarActivityItems(
+        activityItems.filter((item) => item.id !== 'team' || hasTeam),
+        {
+          isFolder,
+          isFolderWorkspace,
+          hasSshHost
+        }
+      ),
+    [activityItems, isFolder, isFolderWorkspace, hasSshHost, hasTeam]
   )
 
   const activeFolderWorkspaceKey = isFolderWorkspace ? (activeWorktreeId ?? null) : null

@@ -1,3 +1,6 @@
+import { agentSessionForkTurnItems } from '../acquisition/agent-session-fork-turn-items'
+import { structuredAgentSessionForkBoundary } from '../acquisition/structured-agent-session-fork-boundary'
+import { readAgentJournalTurn } from '../../../../shared/agent-session/lifecycle/agent-session-turn-record'
 import { projectSavedChatContextItems } from '../../agent-session-saved-prompt-text'
 import type { AgentJournalCursor } from '../../../../shared/agent-session/journal/agent-session-journal-identity'
 import type { AgentSessionContinuationContext } from '../../../../shared/agent-session/agent-session-wire'
@@ -21,6 +24,7 @@ export function continuationContextReader(
     sessionId: string
     workspaceId: string
     expectedCursor: AgentJournalCursor
+    throughItemId?: string
   }): Promise<AgentSessionContinuationContext> => {
     const sourceConversation = () => {
       const record = deps.store.getConversation(input.sessionId)
@@ -43,6 +47,21 @@ export function continuationContextReader(
       return { status: 'superseded' }
     }
     const context = agentSessionCurrentContextRows(snapshot.items, snapshot.submissions)
+    if (input.throughItemId) {
+      const source = deps.store.getRecord(input.sessionId)
+      const boundary =
+        source && structuredAgentSessionForkBoundary(snapshot, source, input.throughItemId)
+      if (!boundary?.checkpoint.settled) {
+        return { status: 'superseded' }
+      }
+      context.items = agentSessionForkTurnItems(context.items, boundary.nextItemId, (item) =>
+        item.turnScope?.kind === 'turn'
+          ? item.turnScope.turnItemId
+          : readAgentJournalTurn(item.body)
+            ? item.itemId
+            : undefined
+      )
+    }
     const messages = projectStructuredAgentSessionMessages(
       context.items,
       [],

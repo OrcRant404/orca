@@ -4,7 +4,7 @@ import {
   NativeChatCrewPanel
 } from '@/components/orchestration-crew/NativeChatCrewPanel'
 import { NativeChatUsageLimitActionsProvider } from '@/components/native-chat/usage/NativeChatUsageLimitActions'
-import { useNativeChatHandOff } from '@/components/native-chat/pane/actions/use-native-chat-hand-off'
+import { useNativeChatPaneHandOff } from '@/components/native-chat/pane/actions/use-native-chat-hand-off'
 import { cn } from '@/lib/utils'
 import { NATIVE_CHAT_APPEARANCE_ROOT_CLASS } from '@/components/native-chat/appearance/native-chat-appearance-style'
 import { useNativeChatStoreAppearanceStyle } from '@/components/native-chat/appearance/use-native-chat-store-appearance-style'
@@ -162,13 +162,7 @@ export function NativeChatStructuredSession(props: Omit<NativeChatStructuredView
     rootRef,
     { sessionId: props.sessionId, isVisible: props.isVisible }
   )
-  const handOff = useNativeChatHandOff({
-    pane: props,
-    directory: fileLinkContext,
-    messages: controller.messages,
-    epoch: controller.epoch,
-    focusComposer
-  })
+  const handOff = useNativeChatPaneHandOff(props, controller, fileLinkContext, focusComposer)
   const paneCommands = useStructuredNativeChatPaneCommands({
     pane: props,
     handOff,
@@ -291,7 +285,12 @@ export function NativeChatStructuredSession(props: Omit<NativeChatStructuredView
           ) : viewState.kind === 'empty' ? (
             <NativeChatEmptyPane slot={install.slot} agent={props.agent} />
           ) : (
-            <NativeChatRowActionsProvider pane={props} chat={controller} forks={forks}>
+            <NativeChatRowActionsProvider
+              pane={props}
+              chat={controller}
+              forks={forks}
+              turnFork={handOff.turnFork}
+            >
               <NativeChatUsageLimitActionsProvider
                 recovery={controller}
                 pane={props}

@@ -4,6 +4,7 @@ import { lazyWithRetry as lazy } from '@/lib/lazy-with-retry'
 import type { ActiveRightSidebarTab } from '../../../../shared/ui-chrome-types'
 import { isPluginPanelTabKey } from '../../../../shared/plugins/manifest/plugin-manifest'
 
+const TeamSidebarPanel = lazy(() => import('../orchestration-crew/TeamSidebarPanel'))
 const FileExplorer = lazy(() => import('./file-explorer/panel/FileExplorer'))
 const FolderWorkspaceSourceControl = lazy(() => import('./FolderWorkspaceSourceControlPanel'))
 const SourceControl = lazy(() => import('./source-control/panel/SourceControl'))
@@ -39,6 +40,7 @@ export function RightSidebarPanelContent({
       data-plugin-panel-surface={isPluginPanelTabKey(effectiveTab) ? effectiveTab : undefined}
     >
       <Suspense fallback={null}>
+        {effectiveTab === 'team' && rightSidebarOpen && <TeamSidebarPanel />}
         {effectiveTab === 'explorer' && <FileExplorer />}
         {effectiveTab === 'source-control' &&
           (isFolderWorkspace ? (

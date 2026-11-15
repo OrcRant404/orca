@@ -1335,6 +1335,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'orchestration.ask': AskParams,
   'orchestration.callerShow': null,
   'orchestration.check': CheckParams,
+  'orchestration.crewSnapshot': CrewSubscribeParams,
   'orchestration.crewSubscribe': CrewSubscribeParams,
   'orchestration.dispatch': DispatchParams,
   'orchestration.dispatchShow': DispatchShowParams,

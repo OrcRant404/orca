@@ -51,6 +51,7 @@ export function AgentLaunchSurfaceButtons({
   terminalBlocked,
   primary,
   prominent,
+  selection,
   onSelect
 }: {
   entry: AgentPickerEntry
@@ -59,6 +60,7 @@ export function AgentLaunchSurfaceButtons({
   primary: AgentPickerSurface
   /** Launch is the popover's main action, so its buttons split the full row. */
   prominent?: boolean
+  selection?: boolean
   onSelect: (surface: AgentPickerSurface) => void
 }): React.JSX.Element {
   const t = useTranslate()
@@ -71,8 +73,12 @@ export function AgentLaunchSurfaceButtons({
         const isPrimary = next === primary
         const label =
           next === 'chat'
-            ? t('agentPicker.launchChat', 'Launch chat')
-            : t('agentPicker.launchTerminal', 'Launch terminal')
+            ? selection
+              ? t('agentPicker.useChat', 'Use chat')
+              : t('agentPicker.launchChat', 'Launch chat')
+            : selection
+              ? t('agentPicker.useTerminal', 'Use terminal')
+              : t('agentPicker.launchTerminal', 'Launch terminal')
         return (
           <Button
             key={next}

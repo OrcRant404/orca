@@ -118,6 +118,7 @@ export type RuntimeMobileSessionAgentTab = {
   /** Host-registered agent; gate names beyond Claude/Codex on client registered-agents capability. */
   agent: StructuredAgentId
   /** The host's structured status row for this chat. Optional: old hosts never send it. */
+  taskAssigned?: boolean
   chatStatus?: RuntimeMobileSessionAgentTabStatus
   color?: string | null
   isPinned?: boolean

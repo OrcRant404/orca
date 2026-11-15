@@ -1,3 +1,4 @@
+import { desktopOrchestrationEnvelope } from './desktop-orchestration-envelope'
 import { BrowserWindow, ipcMain } from 'electron'
 import type { OrcaRuntimeService } from '../runtime/orca-runtime'
 import type {
@@ -88,7 +89,8 @@ export function registerRuntimeHandlers(runtime: OrcaRuntimeService): void {
           id: 'desktop-ipc',
           authToken: 'desktop-ipc',
           method: args.method,
-          params: args.params
+          params: args.params,
+          ...desktopOrchestrationEnvelope(args.method, args.params)
         },
         {
           clientId: 'desktop-renderer',

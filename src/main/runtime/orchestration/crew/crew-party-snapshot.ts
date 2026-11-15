@@ -168,14 +168,28 @@ export function buildCrewSnapshot(
       partyKey: JSON.stringify([deps.hostKey, target.address]),
       role,
       label: crewDisplayName(
-        deps.name(target, display.displayName || display.taskTitle || null, records),
-        title,
-        'Agent'
+        deps.name(target, null, records),
+        assignment?.display_name,
+        fresh?.activity.agentType || assignment?.agent
+          ? `${fresh?.activity.agentType ?? assignment?.agent} worker`
+          : null,
+        'Worker'
       )!,
       agentKind:
         live?.kind === 'here'
           ? live.record.provider
           : (fresh?.activity.agentType ?? assignment?.agent ?? 'Agent'),
+      ...(assignment && role === 'worker'
+        ? {
+            dispatchId: assignment.id,
+            retained:
+              ['completed', 'failed', 'circuit_broken'].includes(assignment.status) &&
+              assignment.resource_release_state !== 'released',
+            ...(assignment.resource_ownership_state
+              ? { ownership: assignment.resource_ownership_state }
+              : {})
+          }
+        : {}),
       status:
         fresh?.activity.state ??
         (assignment
@@ -207,13 +221,17 @@ export function buildCrewSnapshot(
   const snapshot = emptyCrew('ok')
   for (const { assignment, worker, parent } of host.relations.get(self.address) ?? []) {
     if (parent.address === self.address) {
-      snapshot.sections.managing.push(
-        decorate(worker, 'worker', assignment, `dispatch:${assignment.id}`)
-      )
+      const row = decorate(worker, 'worker', assignment, `dispatch:${assignment.id}`)
+      row.coordinatorAddress = parent.address
+      row.workerAddress = worker.address
+      snapshot.sections.managing.push(row)
     }
   }
   const parents = host.sourceInputs.parentInputs(selfAliases(), self.paneKey ? [self.paneKey] : [])
   for (const relation of crewParentRelations(parents, self, registry, deps)) {
+    if (relation.assignment?.resource_release_state === 'released') {
+      continue
+    }
     const row = decorate(relation.parent, 'manager', relation.assignment, relation.address)
     row.partyKey = relation.key
     snapshot.sections.managedBy.push(row)
@@ -258,6 +276,13 @@ export function buildCrewSnapshot(
       snapshot.sections.talkingWith.push(row)
     }
     row.pendingQuestion = { preview: preview(question.body), at: question.created_at }
+  }
+  for (const section of ['managing', 'talkingWith'] as const) {
+    snapshot.sections[section] = snapshot.sections[section].filter(
+      (row) =>
+        row.openTarget?.kind !== 'chat' ||
+        records?.isSessionTabRetired?.(row.openTarget.sessionId) !== true
+    )
   }
   const available = crewRecipientAvailability(
     host,

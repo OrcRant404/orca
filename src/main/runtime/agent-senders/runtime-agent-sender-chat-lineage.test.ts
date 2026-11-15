@@ -78,3 +78,32 @@ it('follows branching, unreadable and cyclic /clear predecessors as the full sca
     .map((row) => String(row.detail))
   expect(plan.join('\n')).toContain('USING INDEX idx_agent_session_clear_successor')
 })
+
+it('publishes first-task assignment and refreshes sender identity without changing its chat', async () => {
+  const root = await scaleDirectory()
+  await seedTestAgentSessionRecordStore(root, {
+    records: [scaleRecord('session-ready')],
+    sessionTabs: [{ tabId: 'tab-ready', sessionId: 'session-ready' }]
+  })
+  const store = await openTestAgentSessionRecordStore(root)
+  const records = conversationRecordReader(store)
+  const before = readAgentSenderSessions(records)[0]
+  expect(before).toMatchObject({
+    identity: 'orca_session_id:session-ready',
+    sessionId: 'session-ready',
+    taskAssigned: false
+  })
+  const revision = store.senderIdentityRevision()
+  await store.transitionHandoff('session-ready', (record) => ({
+    ...record,
+    lastTurn: { state: 'open', at: 100, prompt: 'Inspect one file' }
+  }))
+  const after = readAgentSenderSessions(records)[0]
+  expect(after).toMatchObject({
+    identity: 'orca_session_id:session-ready',
+    sessionId: 'session-ready',
+    paneKey: before.paneKey,
+    taskAssigned: true
+  })
+  expect(store.senderIdentityRevision()).not.toBe(revision)
+})

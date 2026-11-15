@@ -1,4 +1,4 @@
-import { memo } from 'react'
+import { memo, useState } from 'react'
 import { ChevronDown, ChevronRight, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -10,6 +10,8 @@ import type { OrchestrationCrewRow } from '../../../../shared/orchestration/orch
 import type { RuntimeClientTarget } from '../../../../shared/runtime-client-target'
 import { CrewRowDetails, CrewRowTime as Time } from './CrewRowDetails'
 import { CrewRowMenu } from './CrewRowMenu'
+import { CrewWorkerMessagesSheet } from './CrewWorkerMessagesSheet'
+import { useCloseCrewWorker } from './use-close-crew-worker'
 import { CrewAgentIcons, type CrewRowLook } from './CrewAgentIcons'
 
 export function IconButton({
@@ -56,7 +58,13 @@ export const CrewRowView = memo(function CrewRowView({
   const t = useTranslate()
   // memo() skips the parent re-render a language switch relies on.
   useUiLanguageRevision()
+  const [messagesOpen, setMessagesOpen] = useState(false)
+  const closeWorker = useCloseCrewWorker(row, target)
   const open = () => {
+    if (row.dispatchId && row.openTarget?.kind !== 'chat') {
+      setMessagesOpen(true)
+      return
+    }
     void openOrchestrationCrewAgent(row, target)
   }
   const toggle = () => toggleDisclosure(disclosureKey)
@@ -85,7 +93,7 @@ export const CrewRowView = memo(function CrewRowView({
           })}
         </span>
         <CrewAgentIcons look={look} hostLabel={row.hostLabel} />
-        <span className="truncate text-[13px] font-medium">{row.task?.title ?? row.label}</span>
+        <span className="truncate text-[13px] font-medium">{row.label}</span>
         <span
           className={cn(
             'col-start-2 truncate text-xs',
@@ -94,7 +102,14 @@ export const CrewRowView = memo(function CrewRowView({
         >
           {row.pendingQuestion
             ? `${t('components.orchestrationCrew.waitingPrefix', 'Waiting for you · ')}${row.pendingQuestion.preview}`
-            : (row.latest?.preview ?? '')}
+            : [
+                row.retained
+                  ? t('components.orchestrationCrew.keptForReuse', 'Kept for reuse')
+                  : null,
+                row.task?.title ?? row.latest?.preview
+              ]
+                .filter(Boolean)
+                .join(' · ')}
         </span>
       </button>
       <div className="flex shrink-0 items-center">
@@ -118,7 +133,18 @@ export const CrewRowView = memo(function CrewRowView({
           <ExternalLink />
         </IconButton>
         {isVisible ? (
-          <CrewRowMenu row={row} open={open} canMention={canMention} mention={mention} />
+          <CrewRowMenu
+            row={row}
+            open={open}
+            canMention={canMention}
+            mention={mention}
+            viewMessages={() => setMessagesOpen(true)}
+            openTerminal={() => {
+              void openOrchestrationCrewAgent(row, target)
+            }}
+            closeWorker={closeWorker.close}
+            closing={closeWorker.closing}
+          />
         ) : null}
       </div>
       <Time className="justify-self-end pr-1" at={row.pendingQuestion?.at ?? row.latest?.at} />
@@ -126,6 +152,9 @@ export const CrewRowView = memo(function CrewRowView({
         <p className="col-span-2 pt-1 text-xs text-muted-foreground">
           {t('components.orchestrationCrew.sendingUnavailable', 'Sending unavailable')}
         </p>
+      ) : null}
+      {messagesOpen && row.dispatchId ? (
+        <CrewWorkerMessagesSheet row={row} target={target} open onOpenChange={setMessagesOpen} />
       ) : null}
       {expanded ? (
         <div className="col-span-2 min-w-0 pt-2">

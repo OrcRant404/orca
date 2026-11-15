@@ -1,4 +1,3 @@
-import { createPortal } from 'react-dom'
 import { toast } from 'sonner'
 import { useTranslate } from '@/i18n/use-translate'
 import { useAppStore } from '@/store'
@@ -11,8 +10,7 @@ import {
 } from '../terminal-pane/input/file-drop/terminal-drop-target'
 import { insertTerminalCrewMention } from '../terminal-pane/input/paste/terminal-crew-mention'
 import { useTerminalCrewIdentity } from './use-terminal-crew-identity'
-import { LazyOrchestrationCrewPanel } from './LazyOrchestrationCrewPanel'
-import { useOrchestrationPanelEnabled } from './use-orchestration-panel-enabled'
+import { teamSidebarScopeKey, useTeamSidebarScopeRegistration } from './team-sidebar-scope'
 
 type CrewPaneController = Pick<
   TerminalPaneController,
@@ -47,70 +45,61 @@ function TerminalCrewPortal({
     transport?.getPtyId() ?? boundPtyId,
     worktreeId
   )
-  if (!target || !party || !transport) {
-    return null
-  }
-  const hostKey = target.kind === 'local' ? 'local' : target.environmentId
-  return createPortal(
-    <LazyOrchestrationCrewPanel
-      target={target}
-      party={party}
-      surface="terminal"
-      isVisible={
-        controller.isRendererVisible &&
-        (controller.expandedPaneId === null || controller.expandedPaneId === pane.id) &&
-        (controller.isolatedPaneKey === null || controller.isolatedPaneKey === paneKey)
-      }
-      // The transport has no change event, so readiness is checked when the user acts, not latched at render.
-      canMention
-      mention={(rows) => {
-        const manager = managerRef.current
-        const live = paneTransportsRef.current.get(pane.id)
-        const references = rows.flatMap((row) =>
-          row.sendAddress ? [{ label: row.label, address: row.sendAddress, hostKey }] : []
-        )
-        if (manager) {
-          const rejected = () =>
-            toast.error(
-              t(
-                'components.orchestrationCrew.mentionRejected',
-                'The terminal did not accept the agent reference. Try again.'
-              )
+  const hostKey = target?.kind === 'local' ? 'local' : (target?.environmentId ?? 'local')
+  useTeamSidebarScopeRegistration(
+    teamSidebarScopeKey(tabId, paneKey),
+    target && party && transport
+      ? {
+          target,
+          party,
+          isVisible:
+            controller.isRendererVisible &&
+            (controller.expandedPaneId === null || controller.expandedPaneId === pane.id) &&
+            (controller.isolatedPaneKey === null || controller.isolatedPaneKey === paneKey),
+          canMention: true,
+          mention: (rows) => {
+            const manager = managerRef.current
+            const live = paneTransportsRef.current.get(pane.id)
+            const references = rows.flatMap((row) =>
+              row.sendAddress ? [{ label: row.label, address: row.sendAddress, hostKey }] : []
             )
-          const captured = live && captureTerminalDropTarget(pane, live)
-          if (
-            !captured ||
-            !pane.container.isConnected ||
-            !getCurrentTerminalDropTransport(manager, paneTransportsRef.current, captured)
-          ) {
-            rejected()
-            return
-          }
-          manager.setActivePane(captured.paneId, { focus: false })
-          pane.terminal.focus()
-          void insertTerminalCrewMention(
-            manager,
-            paneTransportsRef.current,
-            captured,
-            references
-          ).then((accepted) => {
-            if (!accepted) {
-              rejected()
+            if (manager) {
+              const rejected = () =>
+                toast.error(
+                  t(
+                    'components.orchestrationCrew.mentionRejected',
+                    'The terminal did not accept the agent reference. Try again.'
+                  )
+                )
+              const captured = live && captureTerminalDropTarget(pane, live)
+              if (
+                !captured ||
+                !pane.container.isConnected ||
+                !getCurrentTerminalDropTransport(manager, paneTransportsRef.current, captured)
+              ) {
+                rejected()
+                return
+              }
+              manager.setActivePane(captured.paneId, { focus: false })
+              pane.terminal.focus()
+              void insertTerminalCrewMention(
+                manager,
+                paneTransportsRef.current,
+                captured,
+                references
+              ).then((accepted) => {
+                if (!accepted) {
+                  rejected()
+                }
+              }, rejected)
             }
-          }, rejected)
+          }
         }
-      }}
-    />,
-    pane.container,
-    `crew-${pane.id}`
+      : null
   )
+  return null
 }
 export function TerminalCrewPortals({ controller }: { controller: CrewPaneController }) {
-  // Gate before any pane mounts: an off panel resolves no identities and opens no subscriptions.
-  const enabled = useOrchestrationPanelEnabled()
-  if (!enabled) {
-    return null
-  }
   return (
     <>
       {controller.managedPanes.map((pane) =>

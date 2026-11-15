@@ -4,27 +4,18 @@ import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import StatusIndicator from '@/components/sidebar/workspace-card/surface/StatusIndicator'
-import { formatStateCount } from '@/components/sidebar/workspace-card/activity/worktree-card-agent-summary'
-import type { WorktreeStatus } from '@/lib/worktree-status'
 import type {
   OrchestrationCrewRow,
   OrchestrationCrewSnapshot
 } from '../../../../shared/orchestration/orchestration-crew'
 import type { RuntimeClientTarget } from '../../../../shared/runtime-client-target'
 import { useOrchestrationCrew } from '../native-chat/worker-lifetime/use-orchestration-crew'
-import { translate } from '@/i18n/i18n'
-import { useTranslate, type Translate } from '@/i18n/use-translate'
+import { useTranslate } from '@/i18n/use-translate'
 import { hasVisibleOverlay } from '@/lib/visible-overlay'
 import { isImeOwnedKeyboardEvent } from '@/lib/ime-composition-keyboard-event'
 import { CrewRowView, IconButton } from './CrewRowView'
-import {
-  CREW_STATUS_GROUPS,
-  CrewAgentStack,
-  crewStatusGroup,
-  useCrewRowLooks,
-  type CrewRowLook,
-  type CrewStatusGroup
-} from './CrewAgentIcons'
+import { CrewAgentStack, useCrewRowLooks } from './CrewAgentIcons'
+import { GROUP_STATUS, crewTabSummary } from './crew-panel-summary'
 
 function runningWorker(row: OrchestrationCrewRow): boolean {
   return Boolean(
@@ -42,25 +33,9 @@ type PanelProps = {
   mention: (rows: OrchestrationCrewRow[]) => void
   isVisible?: boolean
   /** A chat's host frame already ends above its composer; a terminal keeps the CLI's prompt and recent output clear. */
-  surface?: 'chat' | 'terminal'
-}
-
-// One fixed sidebar icon per group, so a group's icon never changes with message order.
-const GROUP_STATUS = {
-  needsYou: 'permission',
-  working: 'working',
-  idle: 'inactive',
-  failed: 'failed'
-} as const satisfies Record<CrewStatusGroup, WorktreeStatus>
-
-function groupCount(group: CrewStatusGroup, count: number, t: Translate = translate): string {
-  // The sidebar's "needs attention" count is singular in every form, so this one is the panel's own.
-  return group === 'needsYou'
-    ? t('components.orchestrationCrew.needsYou', '{{count}} need you', {
-        count,
-        defaultValue_one: '{{count}} needs you'
-      })
-    : formatStateCount(group, count, t)
+  surface?: 'chat' | 'terminal' | 'sidebar'
+  initialOpen?: boolean
+  onClose?: () => void
 }
 
 /** Most recent traffic first; the read model keeps one latest message per row, either direction. */
@@ -79,39 +54,6 @@ function disclosureKey(section: string, party: string): string {
   return JSON.stringify([section, party])
 }
 
-function crewTabSummary(
-  workers: number,
-  looks: readonly CrewRowLook[],
-  t: Translate = translate
-): { groups: { group: CrewStatusGroup; looks: CrewRowLook[] }[]; counts: string } {
-  const byGroup = new Map<CrewStatusGroup, CrewRowLook[]>()
-  for (const look of looks) {
-    const group = crewStatusGroup(look.status)
-    const members = byGroup.get(group)
-    if (members) {
-      members.push(look)
-    } else {
-      byGroup.set(group, [look])
-    }
-  }
-  const groups = CREW_STATUS_GROUPS.flatMap((group) => {
-    const members = byGroup.get(group)
-    return members ? [{ group, looks: members }] : []
-  })
-  const counts = [
-    ...(workers > 0
-      ? [
-          t('components.orchestrationCrew.workers', '{{count}} workers', {
-            count: workers,
-            defaultValue_one: '{{count}} worker'
-          })
-        ]
-      : []),
-    ...groups.map(({ group, looks: members }) => groupCount(group, members.length, t))
-  ].join(', ')
-  return { groups, counts }
-}
-
 export function OrchestrationCrewPanel(props: PanelProps): React.JSX.Element | null {
   const snapshot = useOrchestrationCrew(
     props.target,
@@ -127,10 +69,12 @@ export function CrewPanelContent({
   mention,
   snapshot,
   isVisible = true,
-  surface = 'chat'
+  surface = 'chat',
+  initialOpen = false,
+  onClose
 }: PanelProps & { snapshot: OrchestrationCrewSnapshot }): React.JSX.Element | null {
   const t = useTranslate()
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(initialOpen)
   const scope = JSON.stringify([
     target.kind,
     target.kind === 'environment' ? target.environmentId : null,
@@ -159,7 +103,8 @@ export function CrewPanelContent({
     restore.current = true
     setOpen(false)
     setDisclosures({ scope, keys: new Set() })
-  }, [scope])
+    onClose?.()
+  }, [scope, onClose])
   // Hosts pass a new mention function each render; rows get one stable function so their memo holds.
   const latestMention = useRef(mention)
   useLayoutEffect(() => {
@@ -170,12 +115,15 @@ export function CrewPanelContent({
     []
   )
   useLayoutEffect(() => {
+    if (surface === 'sidebar') {
+      return
+    }
     if (open) {
       collapse.current?.focus({ preventScroll: true })
     } else if (restore.current) {
       tab.current?.focus({ preventScroll: true })
     }
-  }, [open])
+  }, [open, surface])
   const { managedBy, managing, talkingWith } = useMemo(
     () => ({
       managedBy: sortCrewRows(snapshot.sections.managedBy),
@@ -220,11 +168,11 @@ export function CrewPanelContent({
     () => new Map(parties.map((row, index) => [row.partyKey, looks[index]])),
     [parties, looks]
   )
-  const visible = snapshot.status === 'ok' && parties.length > 0
+  const visible = initialOpen || (snapshot.status === 'ok' && parties.length > 0)
   useEffect(() => {
     const pane =
       root.current?.closest<HTMLElement>('[data-native-chat-root], .pane') ?? root.current
-    if (!open || !visible || !pane) {
+    if (surface === 'sidebar' || !open || !visible || !pane) {
       return
     }
     const onKeyDown = (event: KeyboardEvent) => {
@@ -242,7 +190,7 @@ export function CrewPanelContent({
     }
     pane.addEventListener('keydown', onKeyDown, true)
     return () => pane.removeEventListener('keydown', onKeyDown, true)
-  }, [open, visible, closePanel])
+  }, [open, visible, closePanel, surface])
   if (!visible) {
     return null
   }
@@ -256,11 +204,13 @@ export function CrewPanelContent({
     setOpen(true)
   }
   const sections = [
-    ['Managed by', t('components.orchestrationCrew.managedBy', 'Managed by'), managedBy],
-    ['Managing', t('components.orchestrationCrew.managing', 'Managing'), managing],
+    ['Managed by', t('components.orchestrationCrew.leadSection', 'Lead'), managedBy],
+    ['Managing', t('components.orchestrationCrew.workersSection', 'Workers'), managing],
     ['Talking with', t('components.orchestrationCrew.talkingWith', 'Talking with'), talkingWith]
   ] as const
-  const title = t('components.orchestrationCrew.title', 'Orchestration')
+  const title = initialOpen
+    ? t('components.orchestrationCrew.team', 'Team')
+    : t('components.orchestrationCrew.title', 'Orchestration')
   return (
     <div
       ref={root}
@@ -268,7 +218,12 @@ export function CrewPanelContent({
       data-pane-prevent-terminal-focus
       data-native-chat-typing-redirect-ignore="true"
       // z-15: above terminal text and the chat rail, below the pane title strip (z-20) so its buttons stay usable.
-      className="pointer-events-none absolute inset-0 z-[15] text-foreground [--crew-border:color-mix(in_srgb,var(--foreground)_20%,var(--border))] [--crew-surface:color-mix(in_srgb,var(--foreground)_7%,var(--card))]"
+      className={cn(
+        'text-foreground [--crew-border:color-mix(in_srgb,var(--foreground)_20%,var(--border))] [--crew-surface:color-mix(in_srgb,var(--foreground)_7%,var(--card))]',
+        surface === 'sidebar'
+          ? 'flex min-h-0 flex-1 flex-col'
+          : 'pointer-events-none absolute inset-0 z-[15]'
+      )}
       onMouseDown={(event) => event.stopPropagation()}
       onKeyDown={(event) => {
         event.stopPropagation()
@@ -281,24 +236,43 @@ export function CrewPanelContent({
           // (their frame stops there); terminals keep the bottom quarter, where the CLI's prompt sits.
           // The header (and its collapse button) always shows: in a pane too short for both, it wins.
           className={cn(
-            'pointer-events-auto absolute right-2.5 top-[calc(var(--orca-pane-title-height)+var(--spacing)*2)] flex min-h-[calc(var(--spacing)*9+2px)] w-78 max-w-[calc(100%-var(--spacing)*5)] flex-col overflow-hidden rounded-[12px] border border-(--crew-border) bg-(--crew-surface) text-card-foreground shadow-floating',
-            surface === 'terminal'
-              ? 'max-h-[calc(75%-var(--orca-pane-title-height)-var(--spacing)*2)]'
-              : 'max-h-[calc(100%-var(--orca-pane-title-height)-var(--spacing)*4)]'
+            surface === 'sidebar'
+              ? 'flex min-h-0 flex-1 flex-col overflow-hidden'
+              : 'pointer-events-auto absolute right-2.5 top-[calc(var(--orca-pane-title-height)+var(--spacing)*2)] flex min-h-[calc(var(--spacing)*9+2px)] w-78 max-w-[calc(100%-var(--spacing)*5)] flex-col overflow-hidden rounded-[12px] border border-(--crew-border) bg-(--crew-surface) text-card-foreground shadow-floating',
+            surface === 'sidebar'
+              ? ''
+              : surface === 'terminal'
+                ? 'max-h-[calc(75%-var(--orca-pane-title-height)-var(--spacing)*2)]'
+                : 'max-h-[calc(100%-var(--orca-pane-title-height)-var(--spacing)*4)]'
           )}
         >
           {/* The collapse button keeps its room in the narrowest panes: the title truncates and the side padding shrinks first. */}
-          <div className="flex h-9 shrink-0 items-center justify-between border-b border-border px-[clamp(0px,calc((100%-var(--spacing)*6)/2),calc(var(--spacing)*2))]">
-            <span className="min-w-0 truncate text-xs font-medium">{title}</span>
-            <IconButton
-              ref={collapse}
-              label={t('components.orchestrationCrew.collapse', 'Collapse orchestration panel')}
-              onClick={() => changeOpen(false)}
-            >
-              <PanelRightClose />
-            </IconButton>
-          </div>
+          {surface !== 'sidebar' ? (
+            <div className="flex h-9 shrink-0 items-center justify-between border-b border-border px-[clamp(0px,calc((100%-var(--spacing)*6)/2),calc(var(--spacing)*2))]">
+              <span className="min-w-0 truncate text-xs font-medium">{title}</span>
+              <IconButton
+                ref={collapse}
+                label={t('components.orchestrationCrew.collapse', 'Collapse orchestration panel')}
+                onClick={() => changeOpen(false)}
+              >
+                <PanelRightClose />
+              </IconButton>
+            </div>
+          ) : null}
           <div className="scrollbar-sleek min-h-0 overflow-y-auto pb-2">
+            {parties.length === 0 ? (
+              <p role="status" className="px-3 py-4 text-xs text-muted-foreground">
+                {snapshot.status === 'ok'
+                  ? t(
+                      'components.orchestrationCrew.emptyTeam',
+                      'No workers yet. Ask the lead to delegate a task; workers will appear here.'
+                    )
+                  : t(
+                      'components.orchestrationCrew.unavailableTeam',
+                      'Team status is not available yet. Close and reopen the panel to retry.'
+                    )}
+              </p>
+            ) : null}
             {sections.map(([key, sectionTitle, rows]) =>
               rows.length > 0 ? (
                 <section key={key} aria-label={sectionTitle}>

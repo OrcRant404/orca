@@ -15,12 +15,20 @@ export function CrewRowMenu({
   row,
   open,
   canMention,
-  mention
+  mention,
+  viewMessages,
+  openTerminal,
+  closeWorker,
+  closing
 }: {
   row: OrchestrationCrewRow
   open: () => void
   canMention: boolean
   mention: () => void
+  viewMessages?: () => void
+  openTerminal?: () => void
+  closeWorker?: () => void
+  closing?: boolean
 }) {
   const t = useTranslate()
   const menu = useCrewMenuFocus()
@@ -52,8 +60,31 @@ export function CrewRowMenu({
           {t('components.orchestrationCrew.mentionInMessage', 'Mention in message')}
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={open}>
-          {t('components.orchestrationCrew.openChat', 'Open its chat')}
+          {row.openTarget?.kind === 'terminal'
+            ? t('components.orchestrationCrew.openOutput', 'View worker output')
+            : t('components.orchestrationCrew.openChat', 'Open its chat')}
         </DropdownMenuItem>
+        {row.openTarget?.kind === 'terminal' && openTerminal ? (
+          <DropdownMenuItem onSelect={openTerminal}>
+            {t('components.orchestrationCrew.openTerminal', 'Open terminal')}
+          </DropdownMenuItem>
+        ) : null}
+        {row.dispatchId && viewMessages ? (
+          <DropdownMenuItem onSelect={viewMessages}>
+            {t('components.orchestrationCrew.viewMessages', 'View worker messages')}
+          </DropdownMenuItem>
+        ) : null}
+        {row.role === 'worker' && row.dispatchId && closeWorker && row.openTarget ? (
+          <DropdownMenuItem
+            disabled={closing}
+            onSelect={() => queueMicrotask(closeWorker)}
+            variant="destructive"
+          >
+            {closing
+              ? t('components.orchestrationCrew.stopping', 'Stopping…')
+              : t('components.orchestrationCrew.closeWorker', 'Stop and close worker')}
+          </DropdownMenuItem>
+        ) : null}
         <DropdownMenuItem
           disabled={!row.sendAddress}
           onSelect={() => {

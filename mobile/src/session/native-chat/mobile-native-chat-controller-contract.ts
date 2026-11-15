@@ -65,6 +65,9 @@ export type MobileNativeChatController = {
   nativeChatWorkingStartedAt: number | null
   nativeChatSettledTurns: NativeChatSettledTurns | null
   nativeChatTurnJournal: NativeChatTurnJournal | null
+  nativeChatJournalCursor?:
+    | import('../../../../src/shared/agent-session/journal/agent-session-journal-identity').AgentJournalCursor
+    | null
   nativeChatReceipts: ReadonlyMap<string, NativeChatResolvedPrompt> | null
   nativeChatActionablePromptIds: readonly string[] | undefined
   nativeChatCommandRefusalCauses: MobileNativeChatCommandRefusalCauses

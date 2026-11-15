@@ -1,3 +1,4 @@
+import { AGENT_SESSION_TURN_FORK_CONTEXT_RUNTIME_CAPABILITY } from '../../../../src/shared/agent-session/agent-session-runtime-capabilities'
 import {
   createContext,
   useCallback,
@@ -179,8 +180,20 @@ export function useMobileNativeChatFork(input: {
         : 'unsupported'
   const registered = useRegisteredAgent(input.client, host, input.agent)
   const support = useMemo(
-    () => nativeChatForkSupport(host, registered, input.sessionForkSupport, inheritedOriginal),
-    [host, registered, input.sessionForkSupport, inheritedOriginal]
+    () =>
+      input.hostCapabilities?.includes(AGENT_SESSION_TURN_FORK_CONTEXT_RUNTIME_CAPABILITY)
+        ? input.hostStatusPending
+          ? { kind: 'unknown' as const }
+          : { kind: 'known' as const, fork: 'checkpoint' as const }
+        : nativeChatForkSupport(host, registered, input.sessionForkSupport, inheritedOriginal),
+    [
+      host,
+      registered,
+      input.sessionForkSupport,
+      inheritedOriginal,
+      input.hostCapabilities,
+      input.hostStatusPending
+    ]
   )
   const { messages, turnJournal, agentWorking, sessionId, agent, createFork } = input
   const turns = useMemo(() => {

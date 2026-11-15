@@ -39,6 +39,9 @@ export type StructuredMobileSession = Omit<
   ReturnType<typeof useMobileStructuredAgentTurnTiming> & {
     /** The composer ring's readout; null until the session reports usage. */
     contextUsage: NativeChatContextUsageSummary | null
+    contextCursor?:
+      | import('../../../src/shared/agent-session/journal/agent-session-journal-identity').AgentJournalCursor
+      | null
     submissions: readonly AgentJournalSubmission[]
     session: MobileNativeChatSession
     asyncQuestionSourceScope: string

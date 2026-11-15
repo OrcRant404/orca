@@ -152,6 +152,7 @@ function senderIndex(state: AppState) {
       row.paneKey === previous.paneKey &&
       row.worktreeId === previous.worktreeId &&
       row.sessionId === previous.sessionId &&
+      row.taskAssigned === previous.taskAssigned &&
       row.dispatchActor === previous.dispatchActor &&
       row.tab === previous.tab
     ) {

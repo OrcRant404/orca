@@ -1,3 +1,4 @@
+import { agentSessionForkTurnItems } from './agent-session-fork-turn-items'
 import { agentSessionCurrentContextRows } from '../../../../shared/agent-session/agent-session-context-clear'
 import { savedRewindKeys } from '../../../../shared/agent-session/lifecycle/agent-session-rewind'
 import { readAgentJournalTurn } from '../../../../shared/agent-session/lifecycle/agent-session-turn-record'
@@ -45,22 +46,7 @@ export function prepareForkSnapshot(input: {
           : readAgentJournalTurn(item.body)
             ? item.itemId
             : undefined
-  let end =
-    input.nextItemId === null
-      ? items.length
-      : items.findIndex((item) => item.itemId === input.nextItemId)
-  if (end < 0) {
-    throw new Error('agent_session_fork:missing-boundary')
-  }
-  const next = items[end]
-  if (next) {
-    const nextTurn = member(next)
-    end = items.findIndex(
-      (item) => item === next || (nextTurn !== undefined && member(item) === nextTurn)
-    )
-  }
-  const keptTurns = new Set(items.slice(0, end).flatMap((item) => member(item) ?? []))
-  const candidates = items.filter((item, index) => index < end || keptTurns.has(member(item) ?? ''))
+  const candidates = agentSessionForkTurnItems(items, input.nextItemId, member)
   const omitted = new Set(keys.omitted)
   const dependents = new Map<string, string[]>()
   const mapped = new Map<string, string>()

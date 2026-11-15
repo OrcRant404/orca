@@ -26,6 +26,7 @@ import { workspaceNavigationToastAction } from '@/lib/workspace-navigation-toast
 
 type LaunchAgentSessionContinuationArgs = {
   agent: TuiAgent
+  intent?: 'handoff' | 'fork'
   prompt: string
   worktreeId: string
   groupId?: string | null
@@ -98,6 +99,7 @@ async function ensureAgentAvailable(
 
 export async function launchAgentSessionContinuation({
   agent,
+  intent = 'handoff',
   prompt,
   worktreeId,
   groupId,
@@ -120,7 +122,10 @@ export async function launchAgentSessionContinuation({
     ...(agentArgs !== undefined ? { agentArgs } : {}),
     ...(groupId ? { groupId } : {}),
     prompt,
-    promptDelivery: agent === 'claude' ? ('draft' as const) : ('submit-after-ready' as const),
+    promptDelivery:
+      intent !== 'fork' && agent === 'claude'
+        ? ('draft' as const)
+        : ('submit-after-ready' as const),
     launchSource,
     ...(initialCwd ? { initialCwd } : {}),
     onPromptDeliveryUnconfirmed: () => {

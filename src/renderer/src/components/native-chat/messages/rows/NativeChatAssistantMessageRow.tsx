@@ -1,7 +1,11 @@
+import { nativeChatRowOffersFork } from '../../../../../../shared/native-chat/native-chat-fork-offer'
 import { useContext } from 'react'
 import { cn } from '@/lib/utils'
 import { isRootAgentJournalItem } from '../../../../../../shared/agent-session/journal/agent-session-journal-producer'
-import { NativeChatForkSlotContext } from '../actions/native-chat-fork-context'
+import {
+  NativeChatForkSlotContext,
+  NativeChatTurnForkContext
+} from '../actions/native-chat-fork-context'
 import { nativeChatAgentRowWords } from './native-chat-message-row-words'
 import type { NativeChatMessage } from '../../../../../../shared/native-chat/native-chat-types'
 import type { deriveNativeChatRowContent } from '../../../../../../shared/native-chat/transcript/native-chat-row-content'
@@ -54,8 +58,22 @@ export function NativeChatAssistantMessageRow({
     endsResponse,
     inSubagentSection = false,
     runtimeContext,
-    fork
+    fork: nativeFork
   } = props
+  const turnFork = useContext(NativeChatTurnForkContext)
+  const fork =
+    turnFork &&
+    nativeChatRowOffersFork(
+      {
+        message,
+        inSubagentSection,
+        turnWorking: activeTurnIsWorking === true,
+        inLatestTurn: false
+      },
+      turnFork
+    )
+      ? turnFork.rowAction
+      : nativeFork
   const { prose, hasImages } = content
   const toolRun = toolRunProps(props, content, run)
   const isSystem = message.role === 'system'

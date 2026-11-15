@@ -1,3 +1,4 @@
+import { buildAgentSessionTurnForkPrompt } from '../../../shared/agent-session/requests/agent-session-turn-fork-prompt'
 import { splitOpenCodeSqliteCandidate } from '../../../shared/opencode-sqlite-session-path'
 import { buildBoundedSessionTranscript } from '@/lib/agent-session-fork-context'
 import type { LaunchSource } from '../../../shared/telemetry-events'
@@ -56,7 +57,8 @@ export function resolveAgentSessionContinuationTranscriptPath(
 
 export function buildAgentSessionContinuationPrompt(
   source: AgentSessionContinuationSource,
-  mode: AgentSessionContinuationContextMode
+  mode: AgentSessionContinuationContextMode,
+  intent: 'handoff' | 'fork' = 'handoff'
 ): string | null {
   const transcriptPath = resolveAgentSessionContinuationTranscriptPath(source)
   const capturedTranscript =
@@ -67,6 +69,14 @@ export function buildAgentSessionContinuationPrompt(
       : transcriptPath
         ? null
         : buildBoundedSessionTranscript(source.capturedText)
+  if (intent === 'fork') {
+    return buildAgentSessionTurnForkPrompt({
+      ...source,
+      capturedText: capturedTranscript ?? '',
+      mode,
+      transcriptPath
+    })
+  }
   if (mode === 'full' && !transcriptPath) {
     return null
   }

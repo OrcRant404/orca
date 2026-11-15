@@ -17,3 +17,5 @@ export const NativeChatForkSlotContext = createContext(false)
 export const NativeChatSideChatForkPointContext = createContext<
   ((point: NativeChatSideChatForkPoint) => void) | undefined
 >(undefined)
+
+export const NativeChatTurnForkContext = createContext<NativeChatForkSurface | undefined>(undefined)

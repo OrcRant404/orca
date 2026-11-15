@@ -256,6 +256,7 @@ export function useMobileStructuredAgentSession(
   })
 
   return {
+    contextCursor: state.cursor,
     ...optionFields,
     contextUsage: useMobileStructuredContextUsage(state.items, contextUsageSupport, state.epoch),
     visualSource: useMemo<MobileNativeChatVisualSource | null>(

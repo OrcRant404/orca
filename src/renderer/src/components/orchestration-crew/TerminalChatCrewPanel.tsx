@@ -12,8 +12,11 @@ export function TerminalChatCrewPanel({
   terminalTabId: string
   paneKey: string
   targetPtyId: string | null
-} & Omit<React.ComponentProps<typeof NativeChatCrewPanel>, 'target' | 'party' | 'sessionId'>) {
+} & Omit<
+  React.ComponentProps<typeof NativeChatCrewPanel>,
+  'target' | 'party' | 'sessionId' | 'tabId'
+>) {
   const ownerWorktreeId = useNativeChatTabOwnerWorktreeId(terminalTabId)
   const crew = useTerminalCrewIdentity(paneKey, targetPtyId, ownerWorktreeId)
-  return <NativeChatCrewPanel {...crew} {...rest} />
+  return <NativeChatCrewPanel {...crew} {...rest} tabId={terminalTabId} paneKey={paneKey} />
 }

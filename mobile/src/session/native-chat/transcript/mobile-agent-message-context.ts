@@ -95,7 +95,8 @@ export function createMobileAgentMessageSource() {
           : tab?.type === 'agent-session'
             ? tab.chatStatus
             : undefined
-      const next = facts
+      const assignment = tab?.type === 'agent-session' ? tab.taskAssigned : undefined
+      const statusView = facts
         ? agentMessageSenderView(
             senderSession(sender) &&
               status &&
@@ -107,12 +108,15 @@ export function createMobileAgentMessageSource() {
         : saved
           ? { agentType: saved }
           : EMPTY_VIEW
+      const next =
+        assignment === undefined ? statusView : { ...statusView, taskAssigned: assignment }
       const previous = views.get(sender)
       if (
         previous &&
         previous.agentType === next.agentType &&
         previous.dot === next.dot &&
-        previous.progress === next.progress
+        previous.progress === next.progress &&
+        previous.taskAssigned === next.taskAssigned
       ) {
         return previous
       }
@@ -145,5 +149,11 @@ export function useMobileAgentMessageView(sender: Sender | undefined): AgentMess
     const fallback = saved ? { agentType: saved } : EMPTY_VIEW
     return () => source?.view(sender) ?? fallback
   }, [source, sender])
+  return useSyncExternalStore(source?.subscribe ?? noopSubscribe, read, read)
+}
+
+export function useMobileAgentTaskAssigned(sender: Sender | undefined): boolean | undefined {
+  const source = useContext(MobileAgentMessageContext)
+  const read = useCallback(() => source?.view(sender).taskAssigned, [source, sender])
   return useSyncExternalStore(source?.subscribe ?? noopSubscribe, read, read)
 }

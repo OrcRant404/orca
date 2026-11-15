@@ -27,6 +27,7 @@ export const ContinuationContextParams = z
   .object({
     sessionId: SessionId,
     workspaceId: Identifier('Invalid workspace id'),
-    expectedCursor: JournalCursor
+    expectedCursor: JournalCursor,
+    throughItemId: Identifier('Invalid fork response id').optional()
   })
   .strict()

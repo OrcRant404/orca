@@ -1,4 +1,6 @@
-import { useCallback, useLayoutEffect, useMemo, useRef } from 'react'
+import { AGENT_SESSION_TURN_FORK_CONTEXT_RUNTIME_CAPABILITY } from '../../../src/shared/agent-session/agent-session-runtime-capabilities'
+import { MobileChatTurnForkSheet, type MobileChatTurnForkPoint } from './MobileChatTurnForkSheet'
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useHostProtocolGates } from '../components/host-protocol-gates-context'
 import type { TuiAgent } from '../../../src/shared/agent-launch/catalog/tui-agent'
 import type { StructuredAgentSessionForkSource } from '../../../src/shared/agent-session/structured-agent-session-create'
@@ -26,11 +28,32 @@ export function MobileNativeChatForkProvider({
   useLayoutEffect(() => {
     latestController.current = controller
   })
-  const createFork = useCallback(
-    (agent: TuiAgent, forkFrom: StructuredAgentSessionForkSource) =>
-      forkMobileStructuredChat(latestController.current, agent, forkFrom),
-    []
-  )
+  const [point, setPoint] = useState<MobileChatTurnForkPoint | null>(null)
+  const finish = useRef<(() => void) | null>(null)
+  const closePoint = useCallback(() => {
+    setPoint(null)
+    finish.current?.()
+    finish.current = null
+  }, [])
+  const activeSource = resolveMobileNativeChatSessionId(controller.activeSessionTab)
+  useLayoutEffect(() => {
+    closePoint()
+    return closePoint
+  }, [client, worktreeId, activeSource, closePoint])
+  const createFork = useCallback((agent: TuiAgent, forkFrom: StructuredAgentSessionForkSource) => {
+    const current = latestController.current
+    if (!current.hostCapabilities?.includes(AGENT_SESSION_TURN_FORK_CONTEXT_RUNTIME_CAPABILITY)) {
+      return forkMobileStructuredChat(current, agent, forkFrom)
+    }
+    const expectedCursor = current.nativeChatController.nativeChatJournalCursor
+    if (!expectedCursor) {
+      return Promise.resolve()
+    }
+    return new Promise<void>((resolve) => {
+      finish.current = resolve
+      setPoint({ ...forkFrom, sourceAgent: agent, expectedCursor })
+    })
+  }, [])
   const fork = useMobileNativeChatFork({
     client,
     hostCapabilities: controller.hostCapabilities,
@@ -59,6 +82,9 @@ export function MobileNativeChatForkProvider({
     <MobileNativeChatForkContext.Provider value={fork}>
       <MobileNativeChatForkedFromContext.Provider value={openSource}>
         {children}
+        {point ? (
+          <MobileChatTurnForkSheet controller={controller} point={point} onClose={closePoint} />
+        ) : null}
       </MobileNativeChatForkedFromContext.Provider>
     </MobileNativeChatForkContext.Provider>
   )

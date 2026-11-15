@@ -27,6 +27,7 @@ export type SenderLocation = {
   worktreeId: string
   paneKey: string
   agentType?: AgentMessageSenderView['agentType']
+  taskAssigned?: boolean
 }
 type LocateSender = (state: AppState) => SenderLocation | undefined
 export type SenderLookup = {
@@ -36,7 +37,12 @@ export type SenderLookup = {
 }
 
 function equalView(a: AgentMessageSenderView, b: AgentMessageSenderView): boolean {
-  return a.agentType === b.agentType && a.dot === b.dot && a.progress === b.progress
+  return (
+    a.agentType === b.agentType &&
+    a.dot === b.dot &&
+    a.progress === b.progress &&
+    a.taskAssigned === b.taskAssigned
+  )
 }
 
 function createSource(worktreeId: string) {
@@ -130,7 +136,11 @@ function senderRowView(
   location: SenderLocation
 ): AgentMessageSenderView | undefined {
   const row = readSource(state, location).read(state, location.paneKey)
-  return location.activity === false ? { agentType: row?.agentType ?? location.agentType } : row
+  const view =
+    location.activity === false ? { agentType: row?.agentType ?? location.agentType } : row
+  return location.taskAssigned === undefined
+    ? view
+    : { ...view, taskAssigned: location.taskAssigned }
 }
 
 /** Share the sidebar projection before notifying cards; only subscription leases retain a source.

@@ -6,6 +6,7 @@ import {
   useCallback,
   useEffect,
   useRef,
+  useMemo,
   useState,
   type ComponentProps,
   type ReactNode
@@ -48,6 +49,7 @@ export const AgentLaunchPicker = memo(
     agent,
     disabled,
     setupDisabled,
+    surfaceConstraint,
     matchTriggerWidth,
     portalContainer,
     emptyLabel,
@@ -71,6 +73,7 @@ export const AgentLaunchPicker = memo(
     agent: AgentPickerEntry['agent'] | null
     disabled?: boolean
     setupDisabled?: boolean
+    surfaceConstraint?: AgentPickerDraft['surface']
     matchTriggerWidth?: boolean
     portalContainer?: HTMLElement | null
     emptyLabel?: string
@@ -134,7 +137,25 @@ export const AgentLaunchPicker = memo(
       open && !setupDisabled && !suppliedEntries,
       selected ?? agent ?? undefined
     )
-    const entries = suppliedEntries ?? observedEntries
+    const unfilteredEntries = suppliedEntries ?? observedEntries
+    const entries = useMemo(
+      () =>
+        surfaceConstraint
+          ? unfilteredEntries
+              .filter((entry) => entry.surfaces.includes(surfaceConstraint))
+              .map((entry) => ({
+                ...entry,
+                surfaces: [surfaceConstraint],
+                defaultSurface: surfaceConstraint,
+                rows: entry.rows.filter((row) =>
+                  surfaceConstraint === 'chat'
+                    ? row.kind === 'chat'
+                    : row.kind === 'cli' || row.kind === 'terminal'
+                )
+              }))
+          : unfilteredEntries,
+      [unfilteredEntries, surfaceConstraint]
+    )
     const ownsCatalog = suppliedEntries !== undefined
     const selectAgent = useCallback(
       (next: AgentPickerEntry['agent']) => {

@@ -16,7 +16,10 @@ import {
 } from '../../../../../../shared/agent-session/agent-message-presentation'
 import { agentMessageTranscriptText } from '../../../../../../shared/agent-session/agent-message-display-text'
 import { NativeChatAgentMessageSenders } from '../agent-senders/NativeChatAgentMessageSenders'
-import { useAgentMessageSenderView } from '../agent-senders/native-chat-agent-message-sender-view'
+import {
+  useAgentMessageSenderView,
+  useAgentMessageSenderTaskAssigned
+} from '../agent-senders/native-chat-agent-message-sender-view'
 import { useNativeChatVisualOwner } from '../../media/visuals/native-chat-visual-owner'
 import { useNativeChatDisclosure } from '../disclosure/native-chat-disclosure-store'
 import { NativeChatExpandable } from '../disclosure/NativeChatExpandable'
@@ -30,13 +33,16 @@ import { NativeChatImageAttachments } from '../../media/images/NativeChatImageAt
 function heading(
   from: AgentMessageSource,
   message: NativeChatMessage,
+  taskAssigned: boolean | undefined,
   t: Translate = translate
 ): string {
-  switch (agentMessageHeading(from, message)) {
+  switch (agentMessageHeading(from, message, taskAssigned)) {
     case 'started':
       return t('components.native-chat.agentMessage.startedWorker', 'Started worker')
     case 'handed-off':
       return t('components.native-chat.agentMessage.handedOffToAgent', 'Handed off to agent')
+    case 'launching':
+      return t('components.native-chat.agentMessage.launching', 'Launching')
     case 'started-agent':
       return t('components.native-chat.agentMessage.startedAgent', 'Started agent')
     case 'task':
@@ -72,6 +78,12 @@ export function NativeChatAgentMessageCard({
   const owner = useNativeChatVisualOwner()
   const worktreeId = owner?.worktreeId ?? runtimeContext?.worktreeId ?? null
   const target = owner?.target ?? runtimeContext?.target
+  const taskAssigned = useAgentMessageSenderTaskAssigned(
+    agentMessagePrimarySender(from),
+    worktreeId,
+    target,
+    message.agentStartDispatchId
+  )
   const text = agentMessageTranscriptText(message.blocks, from, message.shortened)
   const disclosure = useNativeChatDisclosure(`agent-message:${message.id}`, false)
   const labelId = useId()
@@ -112,7 +124,7 @@ export function NativeChatAgentMessageCard({
           id={labelId}
           className="pointer-events-none max-w-1/3 shrink-0 truncate text-xs text-muted-foreground"
         >
-          {heading(from, message, t)}
+          {heading(from, message, taskAssigned, t)}
         </span>
         <div className="pointer-events-none relative min-w-0 flex-1 [&_button]:pointer-events-auto">
           <NativeChatAgentMessageSenders

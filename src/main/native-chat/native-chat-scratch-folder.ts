@@ -1,13 +1,19 @@
 // Store scratch files beside the host’s chat journal, outside the user’s workspace.
 
 import { createHash } from 'node:crypto'
+import { realpathSync } from 'node:fs'
 import { join } from 'node:path'
 
 const NATIVE_CHAT_SCRATCH_DIR_NAME = 'chat-scratch'
 const FOLDER_NAME = /^[0-9a-f]{32}$/
 
 export function nativeChatScratchRootFor(stateDirectory: string): string {
-  return join(stateDirectory, NATIVE_CHAT_SCRATCH_DIR_NAME)
+  // Profile migrations can leave an alias that agent sandboxes refuse as a writable root.
+  try {
+    return join(realpathSync.native(stateDirectory), NATIVE_CHAT_SCRATCH_DIR_NAME)
+  } catch {
+    return join(stateDirectory, NATIVE_CHAT_SCRATCH_DIR_NAME)
+  }
 }
 
 /** Hash arbitrary session IDs into one safe path segment. */

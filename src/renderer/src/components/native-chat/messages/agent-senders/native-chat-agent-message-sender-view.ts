@@ -212,3 +212,20 @@ export function useAgentMessageSenderViews(
   }, [inputs, targetKind, environmentId])
   return useAgentMessageSenderSources(lookups)
 }
+
+/** Assignment is a host fact; progress pings must not rerender the transcript card. */
+export function useAgentMessageSenderTaskAssigned(
+  sender: AgentMessageSender | undefined,
+  chatWorktreeId: string | null,
+  target?: RuntimeClientTarget,
+  dispatchId?: string
+): boolean | undefined {
+  const { locate, activityLeaseLocate } = useSenderLocation(
+    sender,
+    chatWorktreeId,
+    target,
+    dispatchId
+  )
+  const read = useCallback((state: AppState) => locate(state)?.taskAssigned, [locate])
+  return useLeasedSenderSelector(activityLeaseLocate, read)
+}

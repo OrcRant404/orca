@@ -6,6 +6,8 @@ export type AgentSenderAssociation = {
   paneKey: string
   worktreeId: string
   sessionId?: string
+  /** Whether this chat has accepted its first task; absent on older hosts. */
+  taskAssigned?: boolean
   /** The addressed Dispatch still has its own proved live invocation. Transient display only. */
   dispatchActor?: true
 }

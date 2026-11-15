@@ -28,6 +28,7 @@ export function AgentLaunchSetupActions({
       ) : (
         <AgentLaunchSurfaceButtons
           entry={entry}
+          selection
           disabled={disabled}
           primary={surface}
           onSelect={onUse}

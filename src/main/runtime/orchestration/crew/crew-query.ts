@@ -31,7 +31,9 @@ export const CrewAssignment = z.object({
   host_label: nullable,
   assignee_process: nullable,
   resource_incarnation: nullable,
-  resource_host_scope: nullable
+  resource_host_scope: nullable,
+  resource_release_state: nullable,
+  resource_ownership_state: nullable
 })
 export type CrewAssignmentRow = z.infer<typeof CrewAssignment>
 
@@ -42,13 +44,18 @@ const assignmentColumns = `d.rowid AS ordinal, d.id, d.run_id, d.task_id,
   r.coordinator_handle, r.coordinator_pane_key,
   ${currentRunCoordinatorOrcaSessionIdSql('r')} AS coordinator_session,
   d.process_incarnation AS assignee_process, w.stage, json_extract(w.start_options, '$.agent') AS agent, f.environment_name AS host_label, resource.process_incarnation AS resource_incarnation,
-  resource.host_scope AS resource_host_scope`
+  resource.host_scope AS resource_host_scope, resource.release_state AS resource_release_state, resource.ownership_state AS resource_ownership_state`
 const assignmentJoins = `JOIN tasks t ON t.id = d.task_id JOIN runs r ON r.id = d.run_id
   LEFT JOIN worker_dispatches w ON w.dispatch_id = d.id
   LEFT JOIN federated_dispatches f ON f.dispatch_id = d.id
   LEFT JOIN worker_terminal_resources resource ON resource.owner_dispatch_id = d.id`
 
-export function readCrewAssignments(db: OrchestrationDb, now: number): CrewAssignmentRow[] {
+export function readCrewAssignments(
+  db: OrchestrationDb,
+  now: number,
+  visibleSessions: readonly string[] = [],
+  livePanes: readonly string[] = []
+): CrewAssignmentRow[] {
   const cutoff = new Date(now - AGENT_STATUS_STALE_AFTER_MS).toISOString()
   const sessionIds = db.listSessionDispatchesForPresentation(now).map(({ dispatch }) => dispatch.id)
   return CrewAssignment.array().parse(
@@ -65,9 +72,22 @@ export function readCrewAssignments(db: OrchestrationDb, now: number): CrewAssig
     UNION ALL
     SELECT ${assignmentColumns} FROM dispatch_contexts d ${assignmentJoins}
     WHERE d.id IN (SELECT value FROM json_each(?))
+    UNION
+    SELECT ${assignmentColumns} FROM dispatch_contexts d ${assignmentJoins}
+    WHERE (resource.release_state IN ('live', 'retained', 'releasing', 'unknown')
+       OR d.assignee_orca_session_id IN (SELECT value FROM json_each(?))
+       OR d.assignee_pane_key IN (SELECT value FROM json_each(?)))
+      AND NOT EXISTS (SELECT 1 FROM dispatch_contexts newer WHERE newer.rowid > d.rowid
+        AND ((d.assignee_orca_session_id IS NOT NULL AND newer.assignee_orca_session_id = d.assignee_orca_session_id)
+          OR (d.assignee_handle IS NOT NULL AND newer.assignee_handle = d.assignee_handle)))
     ORDER BY ordinal DESC
   `)
-      .all(cutoff, JSON.stringify(sessionIds))
+      .all(
+        cutoff,
+        JSON.stringify(sessionIds),
+        JSON.stringify(visibleSessions),
+        JSON.stringify(livePanes)
+      )
   )
 }
 

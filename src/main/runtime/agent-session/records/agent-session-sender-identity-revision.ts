@@ -18,7 +18,11 @@ export function clearSuccessor(
 
 function senderFacts(record: AgentSessionRecord | undefined): string | undefined {
   return record
-    ? JSON.stringify([agentSessionScopeKey(record.location), clearSuccessor(record)])
+    ? JSON.stringify([
+        agentSessionScopeKey(record.location),
+        clearSuccessor(record),
+        record.lastTurn !== undefined
+      ])
     : undefined
 }
 

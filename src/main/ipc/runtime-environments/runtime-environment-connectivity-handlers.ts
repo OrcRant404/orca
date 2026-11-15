@@ -1,3 +1,4 @@
+import { desktopOrchestrationEnvelope } from '../desktop-orchestration-envelope'
 import {
   manuallyDisconnectedResponse,
   runtimeEnvironmentCallFailure
@@ -288,7 +289,7 @@ function registerPassiveCallHandler(
           accounts.params,
           args.timeoutMs,
           args.expectedEnvironmentPairingRevision,
-          undefined,
+          desktopOrchestrationEnvelope(args.method, accounts.params),
           { expectedEnvironmentRuntimeId: args.expectedEnvironmentRuntimeId }
         )
       } catch (error) {

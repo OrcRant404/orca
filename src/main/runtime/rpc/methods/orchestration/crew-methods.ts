@@ -1,9 +1,18 @@
 import { CrewSubscribeParams } from '../../../../../shared/orchestration/orchestration-crew'
 import { subscribeCrew } from '../../../orchestration/crew/crew-stream'
-import { defineStreamingMethod } from '../../core'
+import { defineMethod, defineStreamingMethod } from '../../core'
 
 let sequence = 0
 export const ORCHESTRATION_CREW_METHODS = [
+  defineMethod({
+    name: 'orchestration.crewSnapshot',
+    permission: 'workspace',
+    params: CrewSubscribeParams,
+    handler: async ({ party }, { runtime }) => {
+      await runtime.openAgentSessionRecordStore()
+      return runtime.getOrchestrationCrewSnapshot(party)
+    }
+  }),
   defineStreamingMethod({
     name: 'orchestration.crewSubscribe',
     permission: 'workspace',

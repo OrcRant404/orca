@@ -219,7 +219,14 @@ export class RuntimeAgentSenderAssociations {
       records?.senderIdentityRevision
         ? records.senderIdentityRevision()
         : JSON.stringify([
-            records?.listRecords().map((r) => [r.sessionId, r.location, r.conversationCommand]),
+            records
+              ?.listRecords()
+              .map((r) => [
+                r.sessionId,
+                r.location,
+                r.conversationCommand,
+                r.lastTurn !== undefined
+              ]),
             records?.getVisibleSessionTabIndex?.()
           ])
     ]

@@ -1,3 +1,4 @@
+import { isStructuredWorkerHandle } from '../../../../shared/orchestration/workers/structured-worker-handle'
 import { createCrewRecipientInputs } from './crew-recipient-inputs'
 import { captureCrewIdentityInputs } from './crew-identity-inputs'
 import type { FleetDurableWorker } from '../../../../shared/orchestration/fleet/orchestration-fleet-projection'
@@ -26,7 +27,62 @@ export function createCrewHostDerivation(
         Number(['pending', 'dispatched'].includes(b.status)) -
           Number(['pending', 'dispatched'].includes(a.status)) || b.ordinal - a.ordinal
     )
-  const assignments = deps.db ? [...selected(readCrewAssignments(deps.db, now))] : []
+  const visibleSessions = new Set(
+    deps.records?.listVisibleSessionIds?.() ??
+      deps.records?.getVisibleSessionTabIndex?.().sessionIds ??
+      []
+  )
+  const pending = [...visibleSessions]
+  for (let id = pending.pop(); id !== undefined; id = pending.pop()) {
+    for (const previous of deps.records?.listClearedFrom?.(id) ?? []) {
+      if (!visibleSessions.has(previous)) {
+        visibleSessions.add(previous)
+        pending.push(previous)
+      }
+    }
+  }
+  const livePanes = deps.statuses.flatMap((status) => {
+    const handle = deps.handleForPane(status.activity.paneKey)
+    return handle &&
+      (deps.livePaneForHandle?.(handle) ?? deps.paneForHandle(handle)) === status.activity.paneKey
+      ? [status.activity.paneKey]
+      : []
+  })
+  const assignments = deps.db
+    ? [...selected(readCrewAssignments(deps.db, now, [...visibleSessions], livePanes))].filter(
+        (row) => {
+          if (row.resource_release_state === 'released') {
+            return false
+          }
+          if (
+            row.assignee_orca_session_id ||
+            (row.assignee_handle && isStructuredWorkerHandle(row.assignee_handle)) ||
+            row.host_label ||
+            ['pending', 'dispatched'].includes(row.status)
+          ) {
+            return true
+          }
+          const handle = row.assignee_handle
+          // Orphan identity records survive operator close for output/history reads.
+          // Only an attached live pane represents a CLI worker kept for reuse.
+          if (
+            handle &&
+            (deps.livePaneForHandle
+              ? deps.livePaneForHandle(handle) !== null
+              : deps.liveHandle(handle))
+          ) {
+            return true
+          }
+          const current = row.assignee_pane_key ? deps.handleForPane(row.assignee_pane_key) : null
+          return Boolean(
+            current &&
+            (!deps.livePaneForHandle || deps.livePaneForHandle(current) !== null) &&
+            row.assignee_process &&
+            deps.processForHandle?.(current) === row.assignee_process
+          )
+        }
+      )
+    : []
   const assignmentsById = new Map(assignments.map((row) => [row.id, row]))
   const assignmentParty = new Map<string, Party>()
   const addAssignment = (row: CrewAssignmentRow): Party => {
@@ -133,14 +189,26 @@ export function createCrewHostDerivation(
           processIncarnation: row.resource_incarnation,
           hostScope: row.resource_host_scope,
           ownershipState: 'owned',
-          releaseState: 'live',
+          releaseState:
+            row.resource_release_state === 'retained'
+              ? 'retained'
+              : row.resource_release_state === 'releasing'
+                ? 'releasing'
+                : row.resource_release_state === 'unknown'
+                  ? 'unknown'
+                  : 'live',
           updatedAt: ''
         }
       : null
   }))
   let expiresAt = Infinity
   for (const row of assignments) {
-    if (row.completed_at) {
+    if (
+      row.completed_at &&
+      !row.resource_release_state &&
+      !visibleSessions.has(row.assignee_orca_session_id ?? '') &&
+      !livePanes.includes(row.assignee_pane_key ?? '')
+    ) {
       const completed = Date.parse(
         row.completed_at.includes('T') ? row.completed_at : `${row.completed_at.replace(' ', 'T')}Z`
       )

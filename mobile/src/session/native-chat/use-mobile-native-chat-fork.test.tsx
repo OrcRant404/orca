@@ -1,3 +1,4 @@
+import { AGENT_SESSION_TURN_FORK_CONTEXT_RUNTIME_CAPABILITY } from '../../../../src/shared/agent-session/agent-session-runtime-capabilities'
 import { createElement } from 'react'
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 import { afterEach, expect, it, vi } from 'vitest'
@@ -214,4 +215,51 @@ it('offers an inherited OpenCode tip after the child advances and submits its di
     renderer.update(createElement(ForkProbe, { hostCapabilities: FORK_HOST }))
   })
   expect(latest?.offerFor(copied)).toBe('reserved')
+})
+
+it('offers a Grok response through point context without native copying and holds the action while its picker is open', async () => {
+  const { client } = connection(0)
+  const done = Promise.withResolvers<void>()
+  let received: unknown
+  function Probe({ pending = false }: { pending?: boolean }) {
+    latest = useMobileNativeChatFork({
+      client,
+      hostCapabilities: [...FORK_HOST, AGENT_SESSION_TURN_FORK_CONTEXT_RUNTIME_CAPABILITY],
+      hostStatusPending: pending,
+      agent: 'grok',
+      sessionId: 'source',
+      messages: [message],
+      turnJournal: { items: [reply], submissions: [] },
+      agentWorking: false,
+      sessionForkSupport: 'unsupported',
+      createFork: async (agent, point) => {
+        received = { agent, point }
+        await done.promise
+      }
+    })
+    return null
+  }
+  let renderer!: ReactTestRenderer
+  await act(async () => {
+    renderer = create(createElement(Probe))
+    renderers.push(renderer)
+  })
+  expect(latest?.offerFor(message)).toBe('available')
+  await act(async () => {
+    latest?.fork(message)
+  })
+  expect(received).toEqual({
+    agent: 'grok',
+    point: { sessionId: 'source', throughItemId: 'reply' }
+  })
+  expect(latest?.offerFor(message)).toBe('disabled')
+  await act(async () => {
+    done.resolve()
+    await done.promise
+  })
+  expect(latest?.offerFor(message)).toBe('available')
+  await act(async () => {
+    renderer.update(createElement(Probe, { pending: true }))
+  })
+  expect(latest?.offerFor(message)).toBe('disabled')
 })

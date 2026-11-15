@@ -10,6 +10,11 @@ export const CrewRow = z.object({
   agentKind: z.string(),
   hostLabel: z.string().optional(),
   status: z.string(),
+  dispatchId: z.string().optional(),
+  coordinatorAddress: CrewParty.optional(),
+  workerAddress: CrewParty.optional(),
+  retained: z.boolean().optional(),
+  ownership: z.string().optional(),
   task: z.object({ title: z.string(), state: z.string() }).optional(),
   progress: z.string().optional(),
   latest: z
