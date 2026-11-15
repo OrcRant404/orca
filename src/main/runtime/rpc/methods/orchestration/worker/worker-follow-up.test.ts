@@ -4,7 +4,10 @@ import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { getWorkerTerminalAutoReleaseScheduler } from '../../../../orchestration/terminal-authority/release/worker-terminal-auto-release-scheduler'
-import { getFollowUpDispatch } from '../../../../orchestration/db/dispatch-context/worker-follow-up-lineage'
+import {
+  getFollowUpDispatch,
+  markUnreadFollowUpMail
+} from '../../../../orchestration/db/dispatch-context/worker-follow-up-lineage'
 import './worker-resume-session-capture'
 import {
   continueAllUnreadWorkerMail,
@@ -106,6 +109,94 @@ describe('a follow-up to a finished terminal worker', () => {
     await vi.waitFor(() =>
       expect(h.db.getUnreadMessages(`dispatch:${failed}`)).toMatchObject([{ body: 'DO NOT PUSH' }])
     )
+  })
+
+  async function blockFollowUp(): Promise<{ original: string; failed: string }> {
+    const { taskId, dispatchId } = await h.startWorker()
+    await send(dispatchId, 'DO NOT PUSH')
+    h.settle(taskId, dispatchId, 'succeeded')
+    vi.mocked(h.runtime.waitForTerminal).mockResolvedValueOnce({
+      handle: 'term_worker',
+      condition: 'tui-idle',
+      satisfied: false,
+      status: 'running',
+      exitCode: null,
+      blockedReason: 'agent-trust-workspace'
+    })
+    await continueUnreadWorkerMail(h.runtime, h.db, dispatchId)
+    await vi.waitFor(() =>
+      expect(h.db.getWorkerDispatch(getFollowUpDispatch(h.db, dispatchId)?.id ?? '')).toMatchObject(
+        {
+          state: 'failed',
+          stage: 'agent_readiness'
+        }
+      )
+    )
+    return { original: dispatchId, failed: getFollowUpDispatch(h.db, dispatchId)!.id }
+  }
+
+  it('keeps blocked-start mail across relaunches without waking the lead, until an explicit send', async () => {
+    userDataDir = mkdtempSync(join(tmpdir(), 'orca-follow-up-blocked-'))
+    h.setup({ userDataDir })
+    const { original, failed } = await blockFollowUp()
+    const mail = h.db.getUnreadMessages(`dispatch:${failed}`)
+    expect(mail).toMatchObject([{ body: 'DO NOT PUSH' }])
+    const notices = h.db.getUnreadMessages(`run:${h.activeRunId}`, ['escalation'])
+    expect(notices).not.toHaveLength(0)
+
+    for (let relaunch = 0; relaunch < 2; relaunch++) {
+      h.restart()
+      await continueUnreadWorkerMail(h.runtime, h.db, failed)
+      expect(getFollowUpDispatch(h.db, failed)).toBeUndefined()
+      expect(h.db.getUnreadMessages(`dispatch:${failed}`)).toEqual(mail)
+      expect(h.db.getUnreadMessages(`run:${h.activeRunId}`, ['escalation'])).toEqual(notices)
+    }
+
+    await send(original, 'and the docs')
+    const next = getFollowUpDispatch(h.db, failed)!
+    expect(h.db.getWorkerDispatch(next.id)?.state).toBe('ready')
+    expect(h.db.getUnreadMessages(`dispatch:${next.id}`)).toMatchObject([{ body: 'DO NOT PUSH' }])
+  })
+
+  it('does not retry a blocked descendant through an older marked mailbox', async () => {
+    h.setup()
+    const { original, failed } = await blockFollowUp()
+    h.db.insertMessage({
+      runId: h.activeRunId,
+      from: 'term_coord',
+      to: `dispatch:${original}`,
+      subject: 'More',
+      body: 'KEEP THE DOCS',
+      type: 'status'
+    })
+    markUnreadFollowUpMail(h.db, original)
+
+    await continueUnreadWorkerMail(h.runtime, h.db, original)
+
+    expect(getFollowUpDispatch(h.db, failed)).toBeUndefined()
+    expect(h.db.getUnreadMessages(`dispatch:${original}`)).toMatchObject([
+      { body: 'KEEP THE DOCS' }
+    ])
+    expect(h.db.getUnreadMessages(`dispatch:${failed}`)).toMatchObject([{ body: 'DO NOT PUSH' }])
+  })
+
+  it('still continues genuinely new mail after a worker reports a failed task', async () => {
+    h.setup()
+    const { taskId, dispatchId } = await h.startWorker()
+    await send(dispatchId, 'TRY THE OTHER APPROACH')
+    h.settle(taskId, dispatchId, 'failed')
+
+    await continueUnreadWorkerMail(h.runtime, h.db, dispatchId)
+
+    await vi.waitFor(() =>
+      expect(h.db.getWorkerDispatch(getFollowUpDispatch(h.db, dispatchId)?.id ?? '')?.state).toBe(
+        'ready'
+      )
+    )
+    const next = getFollowUpDispatch(h.db, dispatchId)!
+    expect(h.db.getUnreadMessages(`dispatch:${next.id}`)).toMatchObject([
+      { body: 'TRY THE OTHER APPROACH' }
+    ])
   })
 
   it('lists the finished worker without the terminal its follow-up took over', async () => {

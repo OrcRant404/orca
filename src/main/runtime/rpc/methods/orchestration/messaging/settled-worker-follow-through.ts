@@ -1,6 +1,7 @@
 import { parseOrcaSessionAddress } from '../../../../../../shared/orca-session-address'
 import type { OrcaRuntimeService } from '../../../../orca-runtime'
 import type { OrchestrationDb } from '../../../../orchestration/db/orchestration-db'
+import type { WorkerDispatchRow } from '../../../../orchestration/db/orchestration-records'
 import {
   clearFollowUpMail,
   markUnreadFollowUpMail,
@@ -43,8 +44,8 @@ export function continueUnreadWorkerMail(
   runtime: OrcaRuntimeService,
   db: OrchestrationDb,
   dispatchId: string
-): void {
-  void continueUnreadMail(runtime, db, dispatchId).catch((error: unknown) => {
+): Promise<void> {
+  return continueUnreadMail(runtime, db, dispatchId).catch((error: unknown) => {
     console.warn('[orchestration] unread worker mail was not continued', dispatchId, error)
   })
 }
@@ -72,8 +73,8 @@ async function continueUnreadMail(
     return
   }
   const worker = db.getWorkerDispatch(dispatchId)
-  if (worker?.state === 'stopped') {
-    // Orca does not restart a stopped worker on its own; the next send carries its mail.
+  if (requiresExplicitMailRetry(worker)) {
+    // Failed or stopped starts keep their mail for the next send, without waking the lead again.
     return
   }
   if (
@@ -108,6 +109,14 @@ async function continueUnreadMail(
   let outcome: WorkerFollowUpOutcome | undefined
   try {
     plan = planWorkerFollowUp(db, dispatchId, first.type)
+    if (plan?.kind === 'start') {
+      // Keep the pre-repair snapshot: an interrupted start proven unplaced above may retry once.
+      const latestWorker =
+        plan.latest.id === dispatchId ? worker : db.getWorkerDispatch(plan.latest.id)
+      if (requiresExplicitMailRetry(latestWorker)) {
+        return
+      }
+    }
     outcome =
       plan?.kind === 'start'
         ? await startWorkerFollowUp({
@@ -122,7 +131,7 @@ async function continueUnreadMail(
           })
         : plan
   } catch (error) {
-    // The mail stays unread and marked, so the next start, report replay or send retries it.
+    // Claimed failures stay unread and marked for an explicit send; recovery must not retry them.
     noticeUnreadMailNotContinued(
       runtime,
       db,
@@ -151,6 +160,15 @@ async function continueUnreadMail(
     )
   }
   passHeldWorkerMail(runtime, db, followUpId)
+}
+
+function requiresExplicitMailRetry(worker: WorkerDispatchRow | undefined): boolean {
+  return (
+    worker !== undefined &&
+    !reportedWorkerOutcome(worker) &&
+    worker.state !== 'starting' &&
+    worker.state !== 'ready'
+  )
 }
 
 /** Whether a follow-up took over its worker: ready or already reported, failed, or still starting. */

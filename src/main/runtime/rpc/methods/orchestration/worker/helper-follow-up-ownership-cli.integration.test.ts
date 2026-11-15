@@ -258,7 +258,7 @@ describe('which helpers a worker may continue, through CLI argv, RPC and SQLite'
     }
   )
 
-  it('continues a never-placed helper from its worker’s mail held on a failed coordinator attempt', async () => {
+  it('lets a worker explicitly retry its helper with mail held on a failed coordinator attempt', async () => {
     const worker = await start('term_coord', 'term_worker')
     const helper = await failedStart('term_worker', 'terminal create')
     const entered = h.deferred<void>()
@@ -275,12 +275,11 @@ describe('which helpers a worker may continue, through CLI argv, RPC and SQLite'
     gate.resolve()
     const failed = failedReceipt.parse((await attempt).result)
     f.nextTerminal = 'term_helper_fresh'
-    // As at startup: held mail on a finished worker continues it.
     continueAllUnreadWorkerMail(h.runtime, h.db)
-    await vi.waitFor(() =>
-      expect(getFollowUpDispatch(h.db, failed.dispatchId)?.creator_dispatch_id).toBe(
-        worker.dispatchId
-      )
+    expect(getFollowUpDispatch(h.db, failed.dispatchId)).toBeUndefined()
+    expect((await follow('term_worker', helper.dispatchId)).error).toBeUndefined()
+    expect(getFollowUpDispatch(h.db, failed.dispatchId)?.creator_dispatch_id).toBe(
+      worker.dispatchId
     )
   })
 
