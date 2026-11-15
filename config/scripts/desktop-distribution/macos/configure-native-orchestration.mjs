@@ -24,10 +24,6 @@ const { RuntimeClient } = require(
 const profile =
   process.env.ORCA_USER_DATA_PATH ?? join(homedir(), 'Library/Application Support/Orca')
 const client = new RuntimeClient(profile)
-const prompt = readFileSync(
-  fileURLToPath(new URL('../../../orca-native-orchestration-prompt.txt', import.meta.url)),
-  'utf8'
-).trim()
 const skill = readFileSync(
   fileURLToPath(new URL('../../../orca-agent-routing/SKILL.md', import.meta.url)),
   'utf8'
@@ -81,6 +77,9 @@ function nativeGrokShortcut(commands) {
       : commands.find((entry) => entry.id === 'orca-orchestrator-grok')
   if (native?.agent !== 'grok' || !native.launchOptions?.model || !native.launchOptions?.effort) {
     throw new Error('Missing native Orca Grok model/effort; do not fall back to Pi')
+  }
+  if (native === existing) {
+    return existing
   }
   return {
     id: 'paseo-profile-grok',
@@ -207,25 +206,10 @@ for (const alias of aliases) {
   }
 }
 
-const presets = [
-  {
-    id: 'orca-orchestrator-astra',
-    label: 'Orchestrator — Astra High Fast',
-    agent: 'codex',
-    launchOptions: { model: 'gpt-6-astra', effort: 'high', serviceTier: 'priority' }
-  },
-  {
-    id: 'orca-orchestrator-sol',
-    label: 'Orchestrator — Sol 6.1 Extra High Fast',
-    agent: 'codex',
-    launchOptions: { model: 'gpt-6.1-sol', effort: 'xhigh', serviceTier: 'priority' }
-  },
-  {
-    id: 'orca-orchestrator-grok',
-    label: 'Orchestrator — Grok',
-    agent: 'grok',
-    launchOptions: { model: 'grok-4.7', effort: 'high' }
-  }
+const retiredLeadShortcutIds = [
+  'orca-orchestrator-astra',
+  'orca-orchestrator-sol',
+  'orca-orchestrator-grok'
 ]
 const before = (await call('settings.getTerminalQuickCommands', {})).terminalQuickCommands
 const grokShortcut = nativeGrokShortcut(before)
@@ -242,37 +226,36 @@ for (const alias of aliases) {
     symlinkSync(routingHome, alias, 'dir')
   }
 }
-await call('settings.updateTerminalQuickCommands', {
-  mutation: { type: 'upsert', command: grokShortcut }
-})
-for (const preset of presets) {
-  const existing = before.find((command) => command.id === preset.id)
-  const command = {
-    ...preset,
-    action: 'agent-prompt',
-    scope: { type: 'global' },
-    ...existing,
-    prompt
+if (
+  !isDeepStrictEqual(
+    before.find(({ id }) => id === grokShortcut.id),
+    grokShortcut
+  )
+) {
+  await call('settings.updateTerminalQuickCommands', {
+    mutation: { type: 'upsert', command: grokShortcut }
+  })
+}
+for (const id of retiredLeadShortcutIds) {
+  if (before.some((command) => command.id === id)) {
+    await call('settings.updateTerminalQuickCommands', { mutation: { type: 'delete', id } })
+    console.log(`Removed redundant orchestrator shortcut ${id}`)
   }
-  await call('settings.updateTerminalQuickCommands', { mutation: { type: 'upsert', command } })
-  console.log(`Configured ${command.label} for Orca native orchestration`)
 }
 const after = (await call('settings.getTerminalQuickCommands', {})).terminalQuickCommands
-for (const preset of presets) {
-  if (after.find((command) => command.id === preset.id)?.prompt !== prompt) {
-    throw new Error(`Preset did not persist: ${preset.id}`)
+for (const id of retiredLeadShortcutIds) {
+  if (after.some((command) => command.id === id)) {
+    throw new Error(`Retired orchestrator shortcut is still present: ${id}`)
   }
 }
 if (JSON.stringify(savedProfiles(after)) !== JSON.stringify(profiles)) {
   throw new Error('Worker shortcuts changed during installation')
 }
 for (const command of before) {
-  const expected =
-    command.id === grokShortcut.id
-      ? grokShortcut
-      : presets.some((preset) => preset.id === command.id)
-        ? { ...command, prompt }
-        : command
+  if (retiredLeadShortcutIds.includes(command.id)) {
+    continue
+  }
+  const expected = command.id === grokShortcut.id ? grokShortcut : command
   if (JSON.stringify(after.find((entry) => entry.id === command.id)) !== JSON.stringify(expected)) {
     throw new Error(`Unintended shortcut change: ${command.id}`)
   }
