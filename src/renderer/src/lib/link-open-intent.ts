@@ -3,8 +3,12 @@ import type { Tab } from '../../../shared/tab-types'
 import type { EditorOpenLinkIntent } from '@/store/slices/editor/types/editor-open-link-intent'
 import { collectTabGroupLayoutGroupIds } from '../../../shared/workspace-layout/tab-group-moves'
 import { resolveLinkOpenSidePlacement } from './adjacent-link-open-group'
+import type { TabSplitTarget } from '@/store/slices/tabs/tabs-slice-contract'
 
-export type LinkOpenIntent = EditorOpenLinkIntent & { initialGroupId?: string }
+export type LinkOpenIntent = EditorOpenLinkIntent & {
+  initialGroupId?: string
+  split?: TabSplitTarget
+}
 export type LinkSourceTab = Pick<Tab, 'id' | 'entityId' | 'groupId'> &
   Partial<Pick<Tab, 'contentType' | 'executionHostId'>>
 export type LinkSourceState = { unifiedTabsByWorktree?: Record<string, LinkSourceTab[]> }

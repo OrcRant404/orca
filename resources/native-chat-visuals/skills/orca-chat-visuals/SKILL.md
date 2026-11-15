@@ -22,7 +22,11 @@ clearer.
 - Inline your styles, scripts and data. Libraries and fonts may load only from cdn.jsdelivr.net,
   unpkg.com, cdnjs.cloudflare.com, esm.sh, fonts.googleapis.com and fonts.gstatic.com. The page
   can't make network requests; use inline SVG or `data:` URLs for images.
-- Don't size anything to the viewport height (`100vh`); Orca fits the frame to your content.
+- Charts, diagrams, tables and reports should use their intrinsic content height; Orca shrinks
+  the preview to fit. Desktop previews have a responsive height limit and scroll when needed.
+- Site and app mockups may use a viewport-height outer page (`height:100vh;box-sizing:border-box`).
+  Include headers and padding inside that height; use a flex/grid remainder for the main area,
+  rather than adding a `100vh` section below a header. Keep layouts responsive to the frame width.
 - Use Orca's theme variables for surfaces, text, and controls; pair hover `--accent` with
   `--accent-foreground`. Scope fixed-palette CSS to its mockup. Orca updates tokens and
   `color-scheme` live. Charts use `--chart-1` to `--chart-5`.

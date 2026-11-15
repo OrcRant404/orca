@@ -198,13 +198,17 @@ export function selectBrowserLinkDestination(
   const { worktreeId, executionHostId } = destination
   const groups = state.groupsByWorktree[worktreeId] ?? []
   const matchesHost = createBrowserLinkHostMatcher(state, worktreeId, executionHostId)
+  const explicitGroupId = intent?.targetGroupId ?? intent?.split?.sourceGroupId
   if (
-    intent?.targetGroupId &&
-    (intent.workspaceId !== worktreeId ||
+    explicitGroupId &&
+    (intent?.workspaceId !== worktreeId ||
       !matchesHost(intent.hostId) ||
-      !isLiveLinkOpenGroup(state, worktreeId, intent.targetGroupId))
+      !isLiveLinkOpenGroup(state, worktreeId, explicitGroupId))
   ) {
     return { status: 'refused' }
+  }
+  if (intent?.split) {
+    return { status: 'ready', split: intent.split, match: null }
   }
   const reusePage =
     destination.resource.kind !== 'website' ||

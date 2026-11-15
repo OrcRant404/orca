@@ -103,8 +103,6 @@ function visualBaseCss(fitFrame: boolean): string {
   return `html{background:var(--background);color:var(--foreground);font-family:var(--font-sans);font-size:14px;line-height:1.5${scrollbars}body{margin:0}code,pre,kbd,samp{font-family:var(--font-mono)}`
 }
 
-const BASE_CSS = visualBaseCss(true)
-
 /** Ordinary file guests share appearance, while retaining their scrolling and navigation. */
 export function nativeChatVisualGuestTheme(
   theme: NativeChatVisualTheme
@@ -115,9 +113,10 @@ export function nativeChatVisualGuestTheme(
   }
 }
 
-function bootstrapScript(channel: string): string {
+function bootstrapScript(channel: string, scrollable: boolean): string {
   const constants = JSON.stringify({
     channel,
+    scrollable,
     size: NATIVE_CHAT_VISUAL_SIZE_TYPE,
     link: NATIVE_CHAT_VISUAL_OPEN_LINK_TYPE,
     theme: NATIVE_CHAT_VISUAL_THEME_TYPE,
@@ -178,8 +177,21 @@ window.addEventListener('touchmove', function () { send({ type: C.scroll, input:
 // Height: report the document's own height whenever layout changes; the host fits the frame.
 var reported = -1
 var pending = false
+function setScrollingStyle(element, name, value) {
+  if (element && (element.style.getPropertyValue(name) !== value || element.style.getPropertyPriority(name) !== 'important')) {
+    element.style.setProperty(name, value, 'important')
+  }
+}
 function measure() {
   pending = false
+  if (C.scrollable) {
+    [document.documentElement, document.body].forEach(function (element) {
+      setScrollingStyle(element, 'overflow', 'auto')
+      setScrollingStyle(element, 'scrollbar-width', 'auto')
+      setScrollingStyle(element, 'scrollbar-color', 'var(--muted-foreground, currentColor) var(--background, transparent)')
+    })
+    if (document.body && document.body.tabIndex !== 0) document.body.tabIndex = 0
+  }
   var height = document.documentElement.getBoundingClientRect().height
   var body = document.body
   // A page pinned to the frame (html/body height 100%) overflows its body instead of growing it;
@@ -205,11 +217,12 @@ if (typeof ResizeObserver === 'function') {
 // Content that overflows a fixed-size body changes no observed box, so watch the content too.
 if (typeof MutationObserver === 'function') {
   document.addEventListener('DOMContentLoaded', function () {
-    if (document.body) new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true })
+    if (document.body) new MutationObserver(schedule).observe(C.scrollable ? document.documentElement : document.body, { childList: true, subtree: true, characterData: true, attributes: true })
   })
 }
 document.addEventListener('DOMContentLoaded', schedule)
 window.addEventListener('load', schedule)
+window.addEventListener('resize', function () { reported = -1; schedule() })
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule)
 })()`
 }
@@ -219,6 +232,8 @@ export function buildNativeChatVisualDocument(args: {
   html: string
   channel: string
   theme: NativeChatVisualTheme
+  /** Capped desktop previews own document scrolling; mobile retains its fixed-frame behavior. */
+  scrollable?: boolean
 }): string {
   const scheme = args.theme.colorScheme === 'dark' ? 'dark' : 'light'
   return `<!doctype html>
@@ -229,8 +244,8 @@ ${INERT_BASE}
 <meta http-equiv="Content-Security-Policy" content="${NATIVE_CHAT_VISUAL_CSP}">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style id="orca-visual-theme">${nativeChatVisualThemeCss(args.theme)}</style>
-<style>${BASE_CSS}</style>
-<script>${bootstrapScript(args.channel)}</script>
+<style>${visualBaseCss(!args.scrollable)}</style>
+<script>${bootstrapScript(args.channel, args.scrollable === true)}</script>
 </head>
 ${args.html}`
 }

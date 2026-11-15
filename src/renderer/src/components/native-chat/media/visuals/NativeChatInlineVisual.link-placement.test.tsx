@@ -68,7 +68,7 @@ function wrapperForActiveBrowser() {
   )
 }
 
-it('the button follows a moved source and reuses the exact inactive page', () => {
+it('opens in the moved source pane even when the exact page exists elsewhere', () => {
   const browser = useAppStore.getState().createBrowserTab(WORKSPACE, 'file:///repo/chart.html', {
     targetGroupId: 'c',
     executionHostId: 'local',
@@ -90,10 +90,66 @@ it('the button follows a moved source and reuses the exact inactive page', () =>
     }))
   })
   fireEvent.click(screen.getByRole('button', { name: 'Open in new tab' }))
-  expect(wrapperForActiveBrowser()?.entityId).toBe(browser.id)
-  expect(wrapperForActiveBrowser()?.groupId).toBe('c')
+  expect(wrapperForActiveBrowser()?.entityId).not.toBe(browser.id)
+  expect(wrapperForActiveBrowser()?.groupId).toBe('b')
+})
+
+it('opens to the adjacent pane even when the exact page exists in the source pane', () => {
+  const state = useAppStore.getState()
+  state.createBrowserTab(WORKSPACE, 'file:///repo/chart.html', {
+    targetGroupId: 'a',
+    executionHostId: 'local',
+    browserRuntimeEnvironmentId: null,
+    activate: false
+  })
+  const sideBrowser = state.createBrowserTab(WORKSPACE, 'file:///repo/chart.html', {
+    targetGroupId: 'b',
+    executionHostId: 'local',
+    browserRuntimeEnvironmentId: null,
+    activate: false
+  })
+  state.createBrowserPage(sideBrowser.id, 'https://other.example/', {
+    activate: true,
+    browserRuntimeEnvironmentId: null
+  })
+  showVisual()
+  fireEvent.click(screen.getByRole('button', { name: 'Open to side' }))
+  expect(wrapperForActiveBrowser()?.entityId).toBe(sideBrowser.id)
+  expect(wrapperForActiveBrowser()?.groupId).toBe('b')
   expect(
-    useAppStore.getState().browserTabsByWorktree[WORKSPACE]?.find((tab) => tab.id === browser.id)
-      ?.activePageId
-  ).toBe(browser.activePageId)
+    useAppStore
+      .getState()
+      .browserTabsByWorktree[WORKSPACE]?.find((tab) => tab.id === sideBrowser.id)?.activePageId
+  ).toBe(sideBrowser.activePageId)
+})
+
+it('opens a right split from one pane instead of reusing its exact page', () => {
+  useAppStore.setState((state) => ({
+    groupsByWorktree: {
+      [WORKSPACE]: state.groupsByWorktree[WORKSPACE]!.filter((group) => group.id === 'a')
+    },
+    unifiedTabsByWorktree: {
+      [WORKSPACE]: state.unifiedTabsByWorktree[WORKSPACE]!.filter((tab) => tab.groupId === 'a')
+    },
+    activeGroupIdByWorktree: { [WORKSPACE]: 'a' },
+    layoutByWorktree: { [WORKSPACE]: { type: 'leaf', groupId: 'a' } }
+  }))
+  const sourceBrowser = useAppStore
+    .getState()
+    .createBrowserTab(WORKSPACE, 'file:///repo/chart.html', {
+      targetGroupId: 'a',
+      executionHostId: 'local',
+      browserRuntimeEnvironmentId: null,
+      activate: false
+    })
+  showVisual()
+  fireEvent.click(screen.getByRole('button', { name: 'Open to side' }))
+  expect(wrapperForActiveBrowser()?.entityId).not.toBe(sourceBrowser.id)
+  expect(wrapperForActiveBrowser()?.groupId).not.toBe('a')
+  expect(useAppStore.getState().layoutByWorktree[WORKSPACE]).toMatchObject({
+    type: 'split',
+    direction: 'horizontal',
+    first: { type: 'leaf', groupId: 'a' },
+    second: { type: 'leaf', groupId: expect.any(String) }
+  })
 })

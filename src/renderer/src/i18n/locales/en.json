@@ -20534,6 +20534,7 @@
       "visualUnavailable": "Visualization unavailable",
       "visualLoading": "Loading visualization",
       "visualOpenInNewTab": "Open in new tab",
+      "visualOpenToSide": "Open to side",
       "queuedMessages": {
         "steer": "Steer",
         "send": "Send",

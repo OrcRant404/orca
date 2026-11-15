@@ -1,8 +1,9 @@
 import { useAppStore } from '@/store'
 import { captureLinkOpenIntent } from '@/lib/link-open-intent'
 import { beginLinkOpenRequest } from '@/lib/link-open-request'
+import { resolveLinkOpenSidePlacement } from '@/lib/adjacent-link-open-group'
 import { useContext, useEffect, useRef, useState } from 'react'
-import { SquareArrowOutUpRight } from 'lucide-react'
+import { PanelRightOpen, SquareArrowOutUpRight } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ArtifactWriteRequest } from '../../../../../../shared/artifacts/artifacts'
 import { ArtifactPublishButton } from '@/components/artifacts/ArtifactPublishButton'
@@ -34,13 +35,38 @@ export function NativeChatVisualUnavailable(): React.JSX.Element {
 }
 
 /** Opens the visual like any HTML file of the chat's workspace: rendered, its source a click away. */
-function openNativeChatVisualFile(owner: NativeChatVisualOwner, path: string): void {
+function openNativeChatVisualFile(
+  owner: NativeChatVisualOwner,
+  path: string,
+  toSide = false
+): void {
   const isCurrentRequest = beginLinkOpenRequest()
-  const linkIntent = captureLinkOpenIntent(useAppStore.getState(), owner.worktreeId, owner.tabId)
+  const state = useAppStore.getState()
+  let linkIntent = captureLinkOpenIntent(state, owner.worktreeId, owner.tabId, {
+    explicitSourceGroup: true
+  })
+  if (!linkIntent) {
+    return
+  }
+  if (toSide) {
+    const placement = resolveLinkOpenSidePlacement({
+      layout: state.layoutByWorktree[owner.worktreeId],
+      groups: state.groupsByWorktree[owner.worktreeId] ?? [],
+      sourceGroupId: linkIntent.initialGroupId
+    })
+    if (!placement || ('groupId' in placement && placement.groupId === linkIntent.initialGroupId)) {
+      return
+    }
+    linkIntent = {
+      ...linkIntent,
+      targetGroupId: 'groupId' in placement ? placement.groupId : undefined,
+      ...('split' in placement ? { split: placement.split } : {})
+    }
+  }
   const plan = openFileInBrowserTab({
     filePath: path,
     worktreeId: owner.worktreeId,
-    ...(owner.tabId ? { linkContext: { linkIntent, isCurrentRequest } } : {})
+    linkContext: { linkIntent, isCurrentRequest }
   })
   if (plan.status === 'unsupported') {
     toast.error(plan.message)
@@ -115,6 +141,7 @@ export function NativeChatInlineVisual({
   }
   const label = title ?? file
   const openLabel = t('components.native-chat.visualOpenInNewTab', 'Open in new tab')
+  const sideLabel = t('components.native-chat.visualOpenToSide', 'Open to side')
 
   return (
     <div ref={boxRef} className="group/visual my-3">
@@ -140,6 +167,21 @@ export function NativeChatInlineVisual({
                 {openLabel}
               </TooltipContent>
             </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon-xs"
+                  aria-label={sideLabel}
+                  onClick={() => openNativeChatVisualFile(owner, state.document.path, true)}
+                >
+                  <PanelRightOpen />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="top" sideOffset={4}>
+                {sideLabel}
+              </TooltipContent>
+            </Tooltip>
             <ArtifactPublishButton
               variant="outline"
               size="icon-xs"
@@ -150,6 +192,7 @@ export function NativeChatInlineVisual({
             />
           </div>
           <NativeChatVisualFrame
+            key={`${state.document.path}:${state.document.revision}`}
             document={state.document}
             title={label}
             themeScope={boxRef}

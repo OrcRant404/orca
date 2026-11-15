@@ -4,6 +4,7 @@ import {
   NATIVE_CHAT_VISUAL_FRAME_NAME_PREFIX,
   NATIVE_CHAT_VISUAL_PONG_TIMEOUT_MS,
   buildNativeChatVisualDocument,
+  clampNativeChatVisualHeight,
   nativeChatVisualPingMessage,
   nativeChatVisualThemeMessage,
   readNativeChatVisualFrameMessage,
@@ -19,6 +20,10 @@ import { useWebviewDragPassthroughActive } from '../../../browser-pane/host-gues
 export const NATIVE_CHAT_VISUAL_RESERVED_HEIGHT = 160
 // Allow one link per Chromium activation window so one click cannot open multiple pages.
 const LINK_COOLDOWN_MS = 5_000
+
+function allocatedVisualHeight(viewportHeight: number): number {
+  return clampNativeChatVisualHeight(Math.round(viewportHeight * 0.8))
+}
 
 function newChannel(): string {
   const bytes = new Uint8Array(16)
@@ -53,7 +58,6 @@ export function NativeChatVisualFrame({
     themeRef.current = theme
     onReaderGestureRef.current = onReaderGesture
   }, [onReaderGesture, theme])
-  const [height, setHeight] = useState(NATIVE_CHAT_VISUAL_RESERVED_HEIGHT)
   const loadsRef = useRef(0)
   // The latest later load still awaiting an answer, and the timer that retires the frame.
   const unansweredRef = useRef<{ id: number; timer: ReturnType<typeof setTimeout> } | null>(null)
@@ -66,25 +70,51 @@ export function NativeChatVisualFrame({
       srcDoc: buildNativeChatVisualDocument({
         html: visual.html,
         channel,
-        theme: themeRef.current
+        theme: themeRef.current,
+        scrollable: true
       })
     }
   }, [visual.html])
+  const initialHeight = allocatedVisualHeight(window.innerHeight)
+  const [measurement, setMeasurement] = useState({ channel: built.channel, height: initialHeight })
+  const height = measurement.channel === built.channel ? measurement.height : initialHeight
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     loadsRef.current = 0
-    const governor = createNativeChatVisualHeightGovernor()
+    let governor = createNativeChatVisualHeightGovernor()
+    let allocatedHeight = allocatedVisualHeight(window.innerHeight)
     let deferred: ReturnType<typeof setTimeout> | null = null
     let latestReported: number | null = null
     let lastLinkAt = -Infinity
+    const viewport = frameRef.current?.closest<HTMLElement>('[data-native-chat-scroll]')
+    let viewportWidth = 0
+    let viewportHeight = 0
+    const resizeViewport = (): void => {
+      const width = viewport?.clientWidth || window.innerWidth
+      const height = viewport?.clientHeight || window.innerHeight
+      if (width === viewportWidth && height === viewportHeight) {
+        return
+      }
+      viewportWidth = width
+      viewportHeight = height
+      allocatedHeight = allocatedVisualHeight(height)
+      governor = createNativeChatVisualHeightGovernor()
+      latestReported = null
+      if (deferred) {
+        clearTimeout(deferred)
+        deferred = null
+      }
+      setMeasurement({ channel: built.channel, height: allocatedHeight })
+    }
     const applyHeight = (): void => {
       deferred = null
       if (latestReported === null) {
         return
       }
-      const decision = governor.decide(latestReported, performance.now())
+      // Bound the viewport independently: 100vh plus headers/padding must not grow its own ceiling.
+      const decision = governor.decide(Math.min(latestReported, allocatedHeight), performance.now())
       if (decision.kind === 'apply') {
-        setHeight(decision.height)
+        setMeasurement({ channel: built.channel, height: decision.height })
       } else if (decision.kind === 'defer') {
         deferred = setTimeout(applyHeight, decision.retryInMs)
       }
@@ -134,8 +164,17 @@ export function NativeChatVisualFrame({
       openHttpLink(message.url, { forceSystemBrowser: true })
     }
     window.addEventListener('message', onMessage)
+    window.addEventListener('resize', resizeViewport)
+    const observer =
+      typeof ResizeObserver === 'function' ? new ResizeObserver(resizeViewport) : null
+    if (viewport) {
+      observer?.observe(viewport)
+    }
+    resizeViewport()
     return () => {
       window.removeEventListener('message', onMessage)
+      window.removeEventListener('resize', resizeViewport)
+      observer?.disconnect()
       if (deferred) {
         clearTimeout(deferred)
       }
