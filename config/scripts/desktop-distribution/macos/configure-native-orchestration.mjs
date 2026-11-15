@@ -14,6 +14,7 @@ import { homedir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { isDeepStrictEqual } from 'node:util'
 import { fileURLToPath } from 'node:url'
+import { installDefaultOrchestrationInstructions } from './default-orchestration-instructions.mjs'
 
 const app = process.env.ORCA_APP_PATH ?? join(homedir(), 'Applications', 'Orca.app')
 const require = createRequire(import.meta.url)
@@ -230,6 +231,7 @@ const before = (await call('settings.getTerminalQuickCommands', {})).terminalQui
 const grokShortcut = nativeGrokShortcut(before)
 const profiles = savedProfiles(before)
 const profileText = `${JSON.stringify({ sources: ['Orca live Quick Commands', paseoPath], profiles }, null, 2)}\n`
+const defaultInstructions = installDefaultOrchestrationInstructions({ userHome: homedir() })
 atomicWrite(join(routingHome, 'SKILL.md'), skill)
 atomicWrite(join(routingHome, 'scripts/prepare-chat.mjs'), chatLauncher)
 atomicWrite(join(routingHome, 'profiles.json'), profileText)
@@ -283,6 +285,9 @@ if (
 ) {
   throw new Error('Routing skill did not persist')
 }
+console.log(
+  `Verified default orchestration instructions for ${defaultInstructions.map(({ provider }) => provider).join(', ')}`
+)
 console.log(
   `Verified ${Object.keys(profiles).length} worker profiles, routing discovery, and unchanged shortcut launch settings`
 )
