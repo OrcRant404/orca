@@ -88,6 +88,47 @@ For a user-named model without a saved profile, use the appropriate role's saved
 permission mode and other compatible settings, overriding only what the user
 specified. Report incompatible settings rather than expanding permissions.
 
+## Name the worker and declare its lifetime
+
+Choose `Ongoing` or `Task only` before creating or reusing a worker. The lifetime
+is about planned reuse, not how long one task takes. Give its visible chat name
+the lifetime, role, and concrete project/topic or task:
+
+- `Ongoing · Research · Ultron`: a researcher called repeatedly for related work.
+- `Ongoing · Visual QA · Orca`: a visual reviewer retained for the current project.
+- `Task only · Lookup · OAuth callers`: one bounded lookup, then cleanup.
+- `Task only · Fix · Task-copy regression`: one fix, then cleanup.
+
+Keep an ongoing name stable across related follow-ups. Update the name when its
+role, scope, or intended lifetime changes. Include the lifetime, stopping condition,
+and lead-owned cleanup plan in the task brief. Reviewer and implementer names
+must identify their separate roles.
+
+After preparation and before dispatch, rename the exact returned native session:
+`ORCA chat rename --session <sessionId> --name '<lifetime · role · scope>' --json`.
+Use the selected Orca executable for `ORCA`, verify the saved name in the receipt,
+and retain that session ID with the launch/Dispatch receipt for reuse and cleanup.
+
+For `Ongoing`, use `--keep-open` while related follow-ups are planned. Leave an
+accepted, idle worker available and visibly named as ongoing. Release and close
+it when that continuing scope ends, unless the user asks to keep it.
+
+For `Task only`, omit `--keep-open` unless the user explicitly requests retention.
+The worker reports its result first; the lead accepts it and preserves reviewable
+results, then releases and closes that exact worker. Reporting `worker_done` or
+receiving a retained-resource receipt does not prove the chat/process closed.
+Verify cleanup and report a blocked or unconfirmed close accurately.
+
+A native chat prepared by this lead solely for a Task can be recorded as adopted
+or external. If normal release retains it for that reason, this task-only cleanup
+policy authorizes the ordinary `agentSession.close` operation for the exact
+session proven by this lead's creation receipt, after its assignment is settled
+and result accepted. Verify that it has no new active assignment or user Keep
+open override. Preserve its saved journal; do not force ownership, kill a PID,
+or apply this exception to unrelated, pre-existing, or user-kept chats. For CLI
+or remote workers, follow the execution host's guarded stop/release flow and its
+confirmed outcome; do not infer exit from a closed tab or a timeout.
+
 ## Launch through Orca
 
 Use the `orchestration` skill to resolve the session's Orca executable and read
@@ -113,7 +154,8 @@ the intended workspace with the selected CLI; use its exact `id:`, `identity:`,
 2. The adapter calls Orca's native `agent.launch` with `surface: chat`, creates
    an unprompted background chat, and verifies its model, effort, speed, and
    permission settings. Only continue when `readyForDispatch` is true and
-   `launch.outcome.kind` is `structured`.
+   `launch.outcome.kind` is `structured`. Rename `launch.outcome.sessionId` using
+   the lifetime/role/scope convention above before dispatch.
 3. Register `launch.outcome.handle` with `orchestration worker-start --terminal`,
    the same exact `--worktree`, a self-contained `--spec-file`. Add `--keep-open` only when the worker
    will be reused for related work or the user asked to retain it.
@@ -181,10 +223,10 @@ follow-ups and re-read files changed since its last assignment. Keep Sol, Terra,
 Claude, or Grok only while their context is useful to the current work. Independent
 reviewers must remain separate from implementers. After accepting a one-off result,
 or when related work is finished, use the guide's worker-release flow for the exact
-owned resource. Inspect the release receipt: an adopted/pre-existing chat may be
-retained for safety. Never force-close an unowned/user-kept chat, kill a PID, or
-assume that omitting --keep-open closes an adopted native chat. Preserve reviewable
-results and respect explicit user retention. Failed, mismatched, or misleading
+resource using the declared lifetime and cleanup policy above. Inspect retained
+receipts and distinguish a lead-created task-only native session from a
+pre-existing/user-kept chat. Never assume omitting `--keep-open` closes an adopted
+native chat. Preserve reviewable results and respect explicit user retention. Failed, mismatched, or misleading
 sessions get a fresh replacement rather than automatic reuse. Give each follow-up new scope, file ownership,
 constraints, and acceptance checks; never assign concurrent tasks to one worker.
 Preserve unrelated edits. Use the current workspace for read-only or disjoint
