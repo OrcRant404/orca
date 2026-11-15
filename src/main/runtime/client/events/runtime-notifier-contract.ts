@@ -141,6 +141,7 @@ export type RuntimeNotifier = {
   revealTerminalPane?(target: TerminalPaneRevealTarget): Promise<boolean>
   focusEditorTab?(tabId: string, worktreeId: string): void
   closeSessionTab?(tabId: string, worktreeId: string): void | Promise<void>
+  setSessionTabHidden?(worktreeId: string, tabId: string, isHidden: boolean): boolean
   moveSessionTab?(worktreeId: string, move: RuntimeMobileSessionTabMove): void
   /** The window moves a client's pane to a new tab, since it owns the layout; rejects when it cannot answer. */
   movePaneToNewTab?(

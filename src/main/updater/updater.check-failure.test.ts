@@ -68,6 +68,7 @@ const { appMock, browserWindowMock, nativeUpdaterMock, autoUpdaterMock, killAllP
     return {
       appMock: {
         isPackaged: true,
+        getAppPath: () => process.cwd(),
         getVersion: vi.fn(() => '1.0.51'),
         on: appOn,
         prependListener: appPrependListener,

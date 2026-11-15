@@ -1,3 +1,4 @@
+import type { RuntimeMobileSessionTabsResult } from '../../../shared/runtime-session-contracts'
 import '../orca-runtime-tests/orca-runtime-test-lifecycle.spec'
 import { expect, it, vi } from 'vitest'
 
@@ -190,5 +191,75 @@ it('refuses a combined native chat edit before saving its name, while accepting 
     await stopStructuredAgentSessionRuntime()
     await closeTestJournalHostDatabases()
     await rm(directory, { recursive: true, force: true })
+  }
+})
+
+it('forwards phone visibility to an attached window and publishes its confirmed snapshot', async () => {
+  const { runtime, dispatcher, notifier, getSession } = fixture()
+  const initial = {
+    worktree: TEST_WORKTREE_ID,
+    publicationEpoch: 'window-visibility',
+    snapshotVersion: 1,
+    activeGroupId: 'group',
+    activeTabId: 'host-tab::leaf',
+    activeTabType: 'terminal' as const,
+    tabGroups: [{ id: 'group', activeTabId: 'host-tab', tabOrder: ['host-tab'] }],
+    tabs: [
+      {
+        type: 'terminal' as const,
+        id: 'host-tab::leaf',
+        parentTabId: 'host-tab',
+        leafId: 'leaf',
+        title: 'Shell',
+        isActive: true
+      }
+    ]
+  }
+  runtime.syncWindowGraph(1, { tabs: [], leaves: [], mobileSessionTabs: [initial] })
+  const setSessionTabHidden = vi.fn(() => true)
+  runtime.setNotifier({ ...notifier, setSessionTabHidden })
+  const confirmation = Promise.withResolvers<RuntimeMobileSessionTabsResult>()
+  const unsubscribe = runtime.onMobileSessionTabsChanged((snapshot) => {
+    if (snapshot.tabs.some((tab) => tab.id === 'host-tab::leaf' && tab.isHidden)) {
+      confirmation.resolve(snapshot)
+    }
+  })
+  try {
+    expect(
+      await dispatcher.dispatch(
+        {
+          id: 'phone-hide',
+          authToken: 'token',
+          method: 'session.tabs.setTabProps',
+          params: { worktree: `id:${TEST_WORKTREE_ID}`, tabId: 'host-tab::leaf', isHidden: true }
+        },
+        { clientKind: 'mobile', pairedDeviceId: 'phone', callerScope: { kind: 'mobile' } }
+      )
+    ).toMatchObject({ ok: true, result: { updated: true, forwarded: true } })
+    expect(setSessionTabHidden).toHaveBeenCalledWith(TEST_WORKTREE_ID, 'host-tab', true)
+    expect(getSession().tabsByWorktree[TEST_WORKTREE_ID]![0]!.isHidden).toBeUndefined()
+    runtime.syncWindowGraph(1, {
+      tabs: [],
+      leaves: [],
+      mobileSessionTabs: [
+        {
+          ...initial,
+          snapshotVersion: 2,
+          activeTabId: null,
+          activeTabType: null,
+          tabGroups: [{ id: 'group', activeTabId: null, tabOrder: ['host-tab'] }],
+          tabs: [{ ...initial.tabs[0]!, isHidden: true, isActive: false }]
+        }
+      ]
+    })
+    expect(await runtime.listMobileSessionTabs(`id:${TEST_WORKTREE_ID}`)).toMatchObject({
+      activeTabId: null,
+      tabs: [{ id: 'host-tab::leaf', isHidden: true, isActive: false }]
+    })
+    expect(await confirmation.promise).toMatchObject({
+      tabs: [{ id: 'host-tab::leaf', isHidden: true }]
+    })
+  } finally {
+    unsubscribe()
   }
 })

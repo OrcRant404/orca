@@ -1,3 +1,4 @@
+import { visibleActiveTabId } from '../../../../../shared/workspace-layout/tab-visibility'
 import type { AppState } from '../../types'
 import { toVisibleTabType, type Tab, type TabGroup } from '../../../../../shared/tab-types'
 import { sanitizeRecentTabIds } from './tab-selection-history'
@@ -25,17 +26,18 @@ function isRemovedUnifiedTab(tab: Tab, removed: KeptWorktreeSurfaceRemoval): boo
   return toVisibleTabType(tab.contentType) === 'editor' && removed.fileIds.has(tab.entityId)
 }
 
-function pruneGroup(group: TabGroup, removedIds: ReadonlySet<string>): TabGroup {
+function pruneGroup(
+  group: TabGroup,
+  removedIds: ReadonlySet<string>,
+  tabs: readonly Tab[]
+): TabGroup {
   if (!group.tabOrder.some((id) => removedIds.has(id))) {
     return group
   }
   const tabOrder = group.tabOrder.filter((id) => !removedIds.has(id))
   const recentTabIds = sanitizeRecentTabIds(group.recentTabIds, tabOrder)
   // Why MRU first: closing the active tab lands on the previously active one, as closeUnifiedTab does.
-  const activeTabId =
-    group.activeTabId && removedIds.has(group.activeTabId)
-      ? (recentTabIds.at(-1) ?? tabOrder[0] ?? null)
-      : group.activeTabId
+  const activeTabId = visibleActiveTabId(tabOrder, recentTabIds, group.activeTabId, tabs)
   return {
     ...group,
     tabOrder,
@@ -106,7 +108,15 @@ export function createKeptWorktreeSurfacePruners(
       pruneEntries(map, worktreeIds, (tabs) => withoutIds(tabs, removedUnifiedIds)),
     groups: (map: AppState['groupsByWorktree']) =>
       pruneEntries(map, worktreeIds, (groups) => {
-        const next = groups.map((group) => pruneGroup(group, removedIds))
+        const next = groups.map((group) =>
+          pruneGroup(
+            group,
+            removedIds,
+            Object.values(s.unifiedTabsByWorktree)
+              .flat()
+              .filter((tab) => !removedUnifiedIds.has(tab.id))
+          )
+        )
         return next.every((group, index) => group === groups[index]) ? groups : next
       }),
     tabBarOrder: (map: AppState['tabBarOrderByWorktree']) =>

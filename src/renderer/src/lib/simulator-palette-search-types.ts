@@ -14,6 +14,7 @@ export type SearchableSimulatorTab = {
   worktree: Worktree
   repoName: string
   worktreeSortIndex: number
+  isHidden?: boolean
   isCurrentTab: boolean
   isCurrentWorktree: boolean
   /** Normalized field index, built once per entry rather than per keystroke. */
@@ -40,6 +41,7 @@ export type SimulatorPaletteSearchResult = {
   branchRanges: readonly MatchRange[]
   typeAliasMatch?: { text: string; ranges: readonly MatchRange[] } | null
   typeAliasMatches: readonly { text: string; ranges: readonly MatchRange[] }[]
+  isHidden?: boolean
   isCurrentTab: boolean
   isCurrentWorktree: boolean
   score: number

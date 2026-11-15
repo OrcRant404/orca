@@ -12,7 +12,7 @@ type Selection = {
   tabGroups?: readonly RuntimeMobileSessionTabGroup[]
 }
 
-type Row = Pick<RuntimeMobileSessionSnapshotTab, 'id' | 'type' | 'isActive'> & {
+type Row = Pick<RuntimeMobileSessionSnapshotTab, 'id' | 'type' | 'isActive' | 'isHidden'> & {
   parentTabId?: string
   leafId?: string
   parentLayout?: { activeLeafId: string | null }
@@ -34,6 +34,9 @@ export function resolveMobileSessionActiveTab<T extends Row>(
   let focused: T | undefined
   let first: T | undefined
   for (const tab of tabs) {
+    if (tab.isHidden) {
+      continue
+    }
     if (
       declared
         ? tab.id !== declared &&
@@ -161,7 +164,12 @@ export function retireMobileSessionTabSelection(
       : {})
   }
   return selected && retired.has(selected)
-    ? selectMobileSessionTab(next, tabs.find((tab) => tab.isActive) ?? tabs[0] ?? null)
+    ? selectMobileSessionTab(
+        next,
+        tabs.find((tab) => !tab.isHidden && tab.isActive) ??
+          tabs.find((tab) => !tab.isHidden) ??
+          null
+      )
     : normalizeMobileSessionTabSelection(next)
 }
 

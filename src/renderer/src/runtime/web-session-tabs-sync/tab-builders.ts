@@ -37,6 +37,7 @@ export function buildTerminalUnifiedTab(
     createdAt: tab.createdAt,
     isPreview: false,
     isPinned: tab.isPinned === true,
+    isHidden: tab.isHidden === true,
     ...(viewMode ? { viewMode } : {})
   }
 }
@@ -65,6 +66,7 @@ export function buildBrowserUnifiedTab(
       ? { lastFocusedAt: existingUnifiedTab.lastFocusedAt }
       : {}),
     isPreview: false,
+    isHidden: hostTab.isHidden === true,
     isPinned:
       hostTab.isPinned !== undefined
         ? hostTab.isPinned === true
@@ -96,6 +98,7 @@ export function buildEditorUnifiedTab(
     sortOrder,
     createdAt,
     isPreview: false,
+    isHidden: tab.isHidden === true,
     isPinned:
       tab.isPinned !== undefined ? tab.isPinned === true : existingUnifiedTab?.isPinned === true
   }

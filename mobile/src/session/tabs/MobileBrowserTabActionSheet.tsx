@@ -9,6 +9,7 @@ export type MobileBrowserNavigationMethod = 'browser.back' | 'browser.forward' |
 
 export function MobileBrowserTabActionSheet(props: {
   target: BrowserTab | null
+  hideActions?: ActionSheetAction[]
   onClose: () => void
   onNavigate: (target: BrowserTab, method: MobileBrowserNavigationMethod) => void
   onCloseTab: (target: BrowserTab) => void
@@ -71,6 +72,7 @@ export function MobileBrowserTabActionSheet(props: {
             }
           }
         },
+        ...(props.hideActions ?? []),
         {
           id: 'close',
           label: t('common.close', 'Close'),

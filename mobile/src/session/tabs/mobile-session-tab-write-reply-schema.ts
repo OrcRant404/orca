@@ -16,3 +16,9 @@ export const sessionTabCloseReplySchema = z
       reply.retirementConfirmed === true &&
       (reply.refused === undefined || reply.refused === false)
   }))
+
+// Forwarding acknowledges delivery; only a subsequent host snapshot confirms visibility.
+export const sessionTabHiddenReplySchema = z.object({
+  updated: z.literal(true),
+  forwarded: z.boolean()
+})

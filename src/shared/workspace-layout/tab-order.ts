@@ -160,3 +160,18 @@ export function tabOrderMoves(from: readonly string[], to: readonly string[]): T
   }
   return moves
 }
+
+/** Visible-only drag commits change placement without deleting hidden group members. */
+export function reorderTabOrderPreservingHidden(
+  order: string[],
+  requested: string[],
+  tabs: readonly Pick<Tab, 'id' | 'isHidden'>[],
+  movingTabId?: string
+): string[] {
+  const omittedHidden = order.some(
+    (id) => !requested.includes(id) && tabs.some((tab) => tab.id === id && tab.isHidden)
+  )
+  return movingTabId || omittedHidden
+    ? reorderProjectedTabOrder(order, requested, movingTabId ?? '')
+    : dedupeTabOrder(requested)
+}

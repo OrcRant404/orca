@@ -70,7 +70,7 @@ describe.skipIf(!realClaudeAvailable)(suiteTitle, () => {
       try {
         await mkdir(cwd, { recursive: true })
         const launch = await resolveLaunch({ identity })
-        const folder = nativeChatScratchFolderFor(stateDirectory, SESSION_ID)
+        const folder = await nativeChatScratchFolderFor(stateDirectory, SESSION_ID)
         expect(launch.options.additionalDirectories).toEqual([folder])
         expect(launch.options.plugins).toHaveLength(1)
         await adapter.acquire({

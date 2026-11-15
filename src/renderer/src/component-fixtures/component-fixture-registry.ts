@@ -43,11 +43,14 @@ function collectFixtures(file: string, module: ComponentFixtureModule): Componen
   )
 }
 
-export async function listComponentFixtures(): Promise<ComponentFixtureEntry[]> {
+export async function listComponentFixtures(
+  componentId?: string
+): Promise<ComponentFixtureEntry[]> {
+  const fixtureFiles = Object.entries(fixtureModuleLoaders).filter(
+    ([file]) => componentId === undefined || fixtureFileToComponentId(file) === componentId
+  )
   const groups = await Promise.all(
-    Object.entries(fixtureModuleLoaders).map(async ([file, load]) =>
-      collectFixtures(file, await load())
-    )
+    fixtureFiles.map(async ([file, load]) => collectFixtures(file, await load()))
   )
   return groups.flat().sort((left, right) => left.id.localeCompare(right.id))
 }

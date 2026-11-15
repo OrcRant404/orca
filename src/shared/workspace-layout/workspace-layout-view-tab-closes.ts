@@ -1,5 +1,6 @@
 // Choose post-close selection while the old order is available: most recent survivor, then closed-tab neighbour. Empty-group collapse selects its split sibling, matching the window.
 
+import { visibleTabOrder } from './tab-visibility'
 import { pickNextActiveTabAfterClose } from '../workspace-session/workspace-session-terminal-tab-close'
 import { findSiblingGroupId, removeGroupLayoutLeaf } from './tab-group-layout-tree'
 import type { WorkspaceLayoutModel } from './workspace-layout-model'
@@ -16,10 +17,11 @@ export function followTabClosesInView(
       const shown = selection.activeTabId
       const was = before.workspaces[key]?.groups.find((group) => group.id === groupId)
       const now = after.workspaces[key]?.groups.find((group) => group.id === groupId)
-      if (!shown || !was || !now || now.tabOrder.includes(shown)) {
+      const visibleOrder = now ? visibleTabOrder(now.tabOrder, after.workspaces[key]!.tabs) : []
+      if (!shown || !was || !now || visibleOrder.includes(shown)) {
         continue
       }
-      const remainingIds = new Set(now.tabOrder)
+      const remainingIds = new Set(visibleOrder)
       const remaining = was.tabOrder.filter((id) => remainingIds.has(id))
       const closing = new Set(was.tabOrder.filter((id) => !remainingIds.has(id)))
       const activeTabId =
@@ -29,7 +31,7 @@ export function followTabClosesInView(
           remaining,
           new Set(remaining)
         ) ??
-        now.tabOrder[0] ??
+        visibleOrder[0] ??
         null
       const recentTabIds = selection.recentTabIds?.filter((id) => remainingIds.has(id))
       groups = {

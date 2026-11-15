@@ -4,6 +4,7 @@ import type { RuntimeMobileSessionTabsSnapshot } from '../../../shared/runtime-s
 export type SessionTabProps = {
   tabId: string
   color?: string | null
+  isHidden?: boolean
   isPinned?: boolean
   viewMode?: 'terminal' | 'chat'
   customTitle?: string | null

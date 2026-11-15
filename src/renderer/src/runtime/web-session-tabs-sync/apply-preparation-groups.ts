@@ -1,3 +1,4 @@
+import { visibleActiveTabId } from '../../../../shared/workspace-layout/tab-visibility'
 import type { TabGroup } from '../../../../shared/tab-types'
 import type { prepareWebSessionTabsSnapshotUnified } from './apply-preparation-unified'
 import { toWebTerminalSurfaceTabId } from '../../../../shared/workspace-layout/terminal-surface-id'
@@ -12,6 +13,7 @@ import { sanitizeRecentTabIds, pushRecentTabId } from './state-equality-core'
 import { pruneTabGroupLayout } from './tab-group-layout-tree'
 import type { WebSessionTabsSyncState } from './state'
 import { isSplitLandingGroup } from '../../store/slices/tabs/split-landing-groups'
+import { emptySplitGroup } from '../../store/slices/tabs/tabs-group-actions'
 
 export function prepareWebSessionTabsSnapshotGroups(
   base: ReturnType<typeof prepareWebSessionTabsSnapshotUnified>
@@ -139,7 +141,7 @@ export function prepareWebSessionTabsSnapshotGroups(
         isWebSessionBrowserPlacementGroupReserved({ worktreeId, groupId })
     })
   })()
-  const nextGroups = (() => {
+  const rawNextGroups = (() => {
     if (clientOwnedPlacement) {
       return clientOwnedPlacement.groups
     }
@@ -167,13 +169,9 @@ export function prepareWebSessionTabsSnapshotGroups(
       clientGroupIdByLocalTabId,
       nextActiveUnifiedTabId
     })
-    const target = strippedGroups.find((group) => group.id === targetGroupId) ?? {
-      id: targetGroupId,
-      worktreeId,
-      activeTabId: null,
-      tabOrder: [],
-      recentTabIds: []
-    }
+    const target =
+      strippedGroups.find((group) => group.id === targetGroupId) ??
+      emptySplitGroup(worktreeId, targetGroupId)
     const targetOrder = [
       ...target.tabOrder.filter((tabId) => validUnifiedTabIds.has(tabId)),
       ...mirroredUnifiedTabs
@@ -208,6 +206,23 @@ export function prepareWebSessionTabsSnapshotGroups(
         })
     )
   })()
+
+  const nextGroups =
+    rawNextGroups?.map((group) => {
+      const prior = currentGroups.find((entry) => entry.id === group.id)
+      return {
+        ...group,
+        activeTabId: visibleActiveTabId(
+          group.tabOrder,
+          prior?.recentTabIds ?? group.recentTabIds,
+          group.activeTabId,
+          nextUnifiedTabs ?? []
+        )
+      }
+    }) ?? null
+  if (clientOwnedPlacement && nextGroups) {
+    clientOwnedPlacement.groups = nextGroups
+  }
 
   const nextTabBarOrder = (() => {
     const current = state.tabBarOrderByWorktree[worktreeId] ?? []

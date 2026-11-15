@@ -1,3 +1,4 @@
+import { useMobileHiddenTabController } from './hidden-tabs/use-mobile-hidden-tab-controller'
 import { useLayoutEffect } from 'react'
 import { useMobileStructuredSessionOpening } from './use-mobile-structured-session-opening'
 import { useNotificationPaneNavigation } from './tabs/use-notification-pane-navigation'
@@ -133,7 +134,8 @@ export function useMobileSessionController() {
     useMobileSessionCloseActions(contentCreateActions)
   )
   const bulkClose = Object.assign(closeActions, useMobileSessionBulkClose(closeActions))
-  const presentation = Object.assign(bulkClose, useMobileSessionPresentation(bulkClose))
+  const hiddenTabs = Object.assign(bulkClose, useMobileHiddenTabController(bulkClose))
+  const presentation = Object.assign(hiddenTabs, useMobileSessionPresentation(hiddenTabs))
   const panelRouteActions = Object.assign(
     presentation,
     useMobileSessionPanelRouteActions(presentation)

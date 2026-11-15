@@ -123,6 +123,13 @@ export type TabsSlice = {
       layoutOwnerHandled?: boolean
     }
   ) => void
+  setTabHidden: (
+    worktreeId: string,
+    unifiedTabId: string,
+    hidden: boolean
+  ) => Promise<{ forwarded: boolean }>
+  /** Apply an authoritative window-owner event without forwarding it back to the runtime. */
+  applyTabHidden: (worktreeId: string, unifiedTabId: string, hidden: boolean) => void
   setTabLabel: (tabId: string, label: string) => void
   setTabViewMode: (tabId: string, mode: 'terminal' | 'chat') => void
   /** Flip a tab between terminal and native-chat renderings; the live TerminalPane stays mounted. */

@@ -1,5 +1,6 @@
 // Keep each view’s selection private beside the layout. Apply close-neighbour selection during edits; other missing references fall back on read and prune on save.
 
+import { visibleTabOrder } from './tab-visibility'
 import { collectLayoutLeafIdsInOrder } from './terminal-pane-tree'
 import type { DesktopLayoutView } from './workspace-layout-beside'
 import { holdsEditorFileId } from './workspace-layout-editor-tab-file'
@@ -78,9 +79,11 @@ function resolveGroupTab(
   const recentTabIds = (selection?.recentTabIds ?? []).filter((id) => tabOrder.includes(id))
   const recorded = selection?.activeTabId
   const activeTabId =
-    recorded && tabOrder.includes(recorded)
-      ? recorded
-      : (recentTabIds.at(-1) ?? tabOrder[0] ?? null)
+    recorded === null
+      ? null
+      : recorded && tabOrder.includes(recorded)
+        ? recorded
+        : (recentTabIds.at(-1) ?? tabOrder[0] ?? null)
   return { activeTabId, recentTabIds }
 }
 
@@ -92,7 +95,10 @@ export function resolveWorkspaceSelection(
 ): ResolvedWorkspaceSelection {
   const groups: ResolvedWorkspaceSelection['groups'] = {}
   for (const group of workspace.groups) {
-    groups[group.id] = resolveGroupTab(group.tabOrder, record.groups[workspaceKey]?.[group.id])
+    groups[group.id] = resolveGroupTab(
+      visibleTabOrder(group.tabOrder, workspace.tabs),
+      record.groups[workspaceKey]?.[group.id]
+    )
   }
   const panes: ResolvedWorkspaceSelection['panes'] = {}
   for (const tab of workspace.tabs) {

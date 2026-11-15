@@ -106,7 +106,14 @@ export function useMobileSessionCloseActions(scope: MobileSessionContentCreateAc
         terminalsRef.current = next
         setTerminals(next)
         if (activeHandleRef.current === target.handle) {
-          const replacement = next[0] ?? null
+          const replacement =
+            next.find(
+              (terminal) =>
+                !sessionTabsRef.current.some(
+                  (tab) =>
+                    tab.type === 'terminal' && tab.terminal === terminal.handle && tab.isHidden
+                )
+            ) ?? null
           activeHandleRef.current = replacement?.handle ?? null
           pendingSelectionRef.current = replacement
             ? {
@@ -180,8 +187,9 @@ export function useMobileSessionCloseActions(scope: MobileSessionContentCreateAc
         closedTabTombstonesRef.current.set(tab.id, Date.now() + 10_000)
         if (selectedSessionTabIdRef.current === tab.id) {
           selectedSessionTabIdRef.current =
-            remainingTabs.find((candidate) => candidate.id === activeSessionTabIdRef.current)?.id ??
-            null
+            remainingTabs.find(
+              (candidate) => !candidate.isHidden && candidate.id === activeSessionTabIdRef.current
+            )?.id ?? null
         }
         if (pendingSelectionTabId(pendingSelectionRef.current) === tab.id) {
           pendingSelectionRef.current = withoutPendingTabId(pendingSelectionRef.current)

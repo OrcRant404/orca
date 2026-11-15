@@ -27,6 +27,7 @@ function layoutTab(tab: PublishedTab): LayoutTab {
       'aiVaultTitle',
       'quickCommandLabel',
       'isPinned',
+      'isHidden',
       'viewMode',
       'isPreview',
       'agentSessionAgent'

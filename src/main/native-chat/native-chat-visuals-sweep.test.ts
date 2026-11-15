@@ -35,8 +35,8 @@ function stateDirectory(): string {
   return dir
 }
 
-function visualsFor(state: string, sessionId: string): string {
-  const folder = nativeChatScratchFolderFor(state, sessionId)
+async function visualsFor(state: string, sessionId: string): Promise<string> {
+  const folder = await nativeChatScratchFolderFor(state, sessionId)
   mkdirSync(folder, { recursive: true })
   writeFileSync(join(folder, 'chart.html'), '<p>chart</p>')
   return folder
@@ -70,12 +70,12 @@ function deps(
 describe('the visuals folder sweep', () => {
   it('keeps a held chat folder however long it went unused, and retains one set aside for startup recovery', async () => {
     const state = stateDirectory()
-    const idle = visualsFor(state, 'chat-idle')
-    const setAside = visualsFor(state, 'chat-set-aside')
+    const idle = await visualsFor(state, 'chat-idle')
+    const setAside = await visualsFor(state, 'chat-set-aside')
     renameSync(setAside, `${setAside}.expired`)
-    const orphan = visualsFor(state, 'chat-gone')
+    const orphan = await visualsFor(state, 'chat-gone')
     renameSync(orphan, `${orphan}.expired`)
-    age(nativeChatScratchRootFor(state), 400)
+    age(await nativeChatScratchRootFor(state), 400)
 
     const result = await sweepNativeChatVisualsFolders(deps(state, ['chat-idle', 'chat-set-aside']))
 
@@ -87,7 +87,7 @@ describe('the visuals folder sweep', () => {
 
   it('removes nothing when the held chats cannot be read', async () => {
     const state = stateDirectory()
-    const folder = visualsFor(state, 'chat-a')
+    const folder = await visualsFor(state, 'chat-a')
     const legacy = join(state, 'native-chat-visuals', basename(folder))
     mkdirSync(legacy, { recursive: true })
     writeFileSync(join(legacy, 'chart.html'), '<p>awaiting migration retry</p>')
@@ -101,7 +101,7 @@ describe('the visuals folder sweep', () => {
 
   it('never touches entries it did not mint, symlinks included', async () => {
     const state = stateDirectory()
-    const root = nativeChatScratchRootFor(state)
+    const root = await nativeChatScratchRootFor(state)
     mkdirSync(join(root, 'notes'), { recursive: true })
     writeFileSync(join(root, 'f'.repeat(32)), 'a file, not a folder')
     const target = mkdtempSync(join(tmpdir(), 'orca-visuals-target-'))
@@ -120,7 +120,7 @@ describe('the visuals folder sweep', () => {
     const elsewhere = mkdtempSync(join(tmpdir(), 'orca-visuals-elsewhere-'))
     scratch.push(elsewhere)
     mkdirSync(join(elsewhere, 'a'.repeat(32)))
-    symlinkSync(elsewhere, nativeChatScratchRootFor(state))
+    symlinkSync(elsewhere, await nativeChatScratchRootFor(state))
     await sweepNativeChatVisualsFolders(deps(state, []))
     expect(existsSync(join(elsewhere, 'a'.repeat(32)))).toBe(true)
   })

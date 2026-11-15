@@ -1,5 +1,6 @@
 // Persist runtime pane membership before spawning through the same layout model used by client commands.
 
+import { followTabClosesInView } from '../../../shared/workspace-layout/workspace-layout-view-tab-closes'
 import { randomUUID } from 'node:crypto'
 import type { ExecutionHostId } from '../../../shared/execution-host'
 import type { WorkspaceSessionState } from '../../../shared/workspace-session/workspace-session-state-types'
@@ -175,7 +176,13 @@ function applyToSession(
   return applied.ok
     ? {
         value: { ok: true, result: applied.result },
-        session: write(saveWorkspaceLayout({ ...loaded, layout: applied.model })),
+        session: write(
+          saveWorkspaceLayout({
+            ...loaded,
+            desktopView: followTabClosesInView(loaded.desktopView, loaded.layout, applied.model),
+            layout: applied.model
+          })
+        ),
         effects: applied.effects,
         ...(keepsViews ? { views: editorViewsOfModel(applied.model) } : {})
       }

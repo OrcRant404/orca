@@ -17,7 +17,8 @@ export function selectActiveTabForWorktree(
     return null
   }
   return (
-    (state.unifiedTabsByWorktree[worktreeId] ?? []).find((tab) => tab.id === group.activeTabId) ??
-    null
+    (state.unifiedTabsByWorktree[worktreeId] ?? []).find(
+      (tab) => tab.id === group.activeTabId && !tab.isHidden
+    ) ?? null
   )
 }

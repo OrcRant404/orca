@@ -1,3 +1,4 @@
+import { HideTabMenuItem } from '@/components/hidden-tabs/HideTabMenuItem'
 import { useEffect, useState } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { X, Pin, PinOff, Volume2, VolumeX } from 'lucide-react'
@@ -310,6 +311,7 @@ export default function BrowserTab({
             {toggleAudioMutedLabel}
           </ContextMenuItem>
         ) : null}
+        <HideTabMenuItem worktreeId={tab.worktreeId} unifiedTabId={dragData.unifiedTabId} />
         <CopyTabIdMenuItem menuKind="context" unifiedTabId={dragData.unifiedTabId} />
         <ContextMenuSeparator />
         <ContextMenuItem onSelect={() => !isPinned && onClose()} disabled={isPinned}>

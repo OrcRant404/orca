@@ -38,6 +38,7 @@ export type SearchableBrowserPage = {
   repoName: string
   worktreeSortIndex: number
   executionHostId?: ExecutionHostId
+  isHidden?: boolean
   isCurrentPage: boolean
   isCurrentWorktree: boolean
   /** Last time the owning browser workspace was focused; null when never focused. */
@@ -71,6 +72,7 @@ export type BrowserPaletteSearchResult = {
   repoRanges: readonly MatchRange[]
   worktreeRanges: readonly MatchRange[]
   branchRanges: readonly MatchRange[]
+  isHidden?: boolean
   isCurrentPage: boolean
   isCurrentWorktree: boolean
   score: number
@@ -196,6 +198,7 @@ function baseResult(
     worktreeRanges: NO_RANGES,
     branchRanges: NO_RANGES,
     isCurrentPage: entry.isCurrentPage,
+    isHidden: entry.isHidden === true,
     isCurrentWorktree: entry.isCurrentWorktree,
     score: positionScore(entry),
     qualityClass: null,

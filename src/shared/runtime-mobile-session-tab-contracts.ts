@@ -31,6 +31,7 @@ export type RuntimeMobileSessionTerminalTab = {
   startupCwd?: string
   parentLayout?: TerminalLayoutSnapshot
   color?: string | null
+  isHidden?: boolean
   isPinned?: boolean
   viewMode?: 'terminal' | 'chat'
   launchDraft?: string
@@ -62,6 +63,7 @@ export type RuntimeMobileSessionMarkdownTab = {
   isUntitled?: true
   documentVersion: string
   color?: string | null
+  isHidden?: boolean
   isPinned?: boolean
   /** The paired server the file lives on. Its publisher sets it; runtimes strip it before serving. */
   hostRuntimeEnvironmentId?: string
@@ -79,6 +81,7 @@ export type RuntimeMobileSessionFileTab = {
   oldPath?: string
   isDirty: boolean
   color?: string | null
+  isHidden?: boolean
   isPinned?: boolean
   isActive: boolean
   /** The paired server the file lives on. Its publisher sets it; runtimes strip it before serving. */
@@ -103,6 +106,7 @@ export type RuntimeMobileSessionBrowserTab = {
   loadError?: BrowserLoadError | null
   certificateFailure?: BrowserCertificateFailure | null
   color?: string | null
+  isHidden?: boolean
   isPinned?: boolean
   isActive: boolean
   /** The paired server the page runs on. Its publisher sets it; runtimes strip it before serving. */
@@ -121,6 +125,7 @@ export type RuntimeMobileSessionAgentTab = {
   taskAssigned?: boolean
   chatStatus?: RuntimeMobileSessionAgentTabStatus
   color?: string | null
+  isHidden?: boolean
   isPinned?: boolean
   isActive: boolean
 }

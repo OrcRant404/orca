@@ -1,3 +1,4 @@
+import { MobileHiddenTabsButton } from '../hidden-tabs/MobileHiddenTabsButton'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native'
 import { File, FileText, Globe, Plus, SquareTerminal } from 'lucide-react-native'
@@ -305,7 +306,17 @@ export function MobileSessionTabStrip({
       </View>
       {/* Terminal layout and Quick commands live in the header's ⋯ menu. */}
       {!actionsCollapsed ? (
-        <View style={newTabStyles.slot}>
+        <View
+          style={[
+            newTabStyles.slot,
+            { flexDirection: 'row', alignItems: 'center', gap: spacing.xs }
+          ]}
+        >
+          <MobileHiddenTabsButton
+            count={controller.hiddenSessionTabs.length}
+            pending={controller.hiddenTabsPending}
+            onPress={controller.openHiddenTabs}
+          />
           <NavBarButton
             disabled={createTabBusy || connState !== 'connected'}
             onPress={handleOpenNewTab}

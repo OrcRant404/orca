@@ -24,7 +24,7 @@ import { dropFileEntriesCoveredByTabResults } from './open-tab-entry-dedupe'
 import { placeHistoryRowsInEntryOptions } from './tab-create-entry-history-placement'
 import { useOmniboxBrowserHistory } from './use-omnibox-browser-history'
 import { useTabEntryMenuReturnFocus } from './use-tab-entry-menu-return-focus'
-import { activateOpenTabSearchResult } from './open-tab-selection-routing'
+import { useTabEntryTabSelection } from './use-tab-entry-tab-selection'
 import { useTabCreateEntrySearchResults } from './use-tab-create-entry-search-results'
 import { DEFAULT_SEARCH_ENGINE } from '../../../../shared/browser-url'
 import { getRendererAppPlatform } from '@/lib/renderer-app-platform'
@@ -66,9 +66,13 @@ function TabBarCreateEntrySession({
 }: TabBarCreateEntryProps): React.JSX.Element {
   const t = useTranslate()
   const [query, setQuery] = useState('')
-  const [pending, setPending] = useState(false)
+  const [entryPending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [switchError, setSwitchError] = useState<string | null>(null)
+  const { selectTab, switchPending, switchError, setSwitchError } = useTabEntryTabSelection({
+    onDidOpenEntry,
+    onQueueSwitchFocus
+  })
+  const pending = entryPending || switchPending
   const [selectionGuidance, setSelectionGuidance] = useState<string | null>(null)
   // null = follow ranking (deferred tabs can prepend); set on arrow keys only.
   const [pinnedOptionId, setPinnedOptionId] = useState<string | null>(null)
@@ -218,18 +222,7 @@ function TabBarCreateEntrySession({
       return
     }
     if (selectedOption.kind === 'tab') {
-      const outcome = activateOpenTabSearchResult(selectedOption.option)
-      if (outcome.status === 'blocked') {
-        return
-      }
-      if (outcome.status === 'failed') {
-        setSwitchError(outcome.message)
-        return
-      }
-      if (outcome.focus) {
-        onQueueSwitchFocus?.(outcome.focus)
-      }
-      onDidOpenEntry?.()
+      selectTab(selectedOption.option)
       return
     }
     if (selectedOption.kind === 'menu') {

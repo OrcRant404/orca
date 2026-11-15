@@ -178,7 +178,7 @@ export function getActiveTabNavOrder(
 
   if (group) {
     const groupTabs = (state.unifiedTabsByWorktree[worktreeId] ?? []).filter(
-      (tab) => tab.groupId === group.id
+      (tab) => tab.groupId === group.id && !tab.isHidden
     )
     // Unified terminal tabs render before legacy runtime hydration; keep them cyclable so activation can restore the runtime.
     const groupTerminalIds = new Set([
@@ -227,5 +227,11 @@ export function getActiveTabNavOrder(
       }
     }
   }
-  return result
+  return result.filter((entry) => {
+    const matches = (state.unifiedTabsByWorktree[worktreeId] ?? []).filter(
+      (tab) =>
+        tab.contentType === entry.type && (tab.id === entry.tabId || tab.entityId === entry.id)
+    )
+    return matches.length === 0 || matches.some((tab) => !tab.isHidden)
+  })
 }

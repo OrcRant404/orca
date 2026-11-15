@@ -185,6 +185,8 @@ export function registerRuntimeWindowLifecycle(
     focusEditorTab: (tabId, worktreeId) => send('ui:focusEditorTab', { tabId, worktreeId }),
     closeSessionTab: (tabId, worktreeId) =>
       requestSessionTabCloseFromRenderer(mainWindow, tabId, worktreeId),
+    setSessionTabHidden: (worktreeId, tabId, isHidden) =>
+      send('ui:setSessionTabHidden', { worktreeId, tabId, isHidden }),
     moveSessionTab: (worktreeId: string, move: RuntimeMobileSessionTabMove) =>
       send('ui:moveSessionTab', { worktreeId, ...move }),
     movePaneToNewTab: (move) => requestTerminalPaneMoveFromRenderer(mainWindow, move),

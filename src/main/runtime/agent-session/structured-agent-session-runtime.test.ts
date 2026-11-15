@@ -100,7 +100,7 @@ describe('structured agent-session runtime install', () => {
   it('moves pre-rename chat visuals under the current root before the host is readable', async () => {
     stateDirectory = await mkdtemp(join(tmpdir(), 'orca-structured-runtime-visuals-'))
     await seedTestAgentSessionRecordStore(stateDirectory, { records: [oldChat('codex')] })
-    const current = nativeChatScratchFolderFor(stateDirectory, 'old-codex')
+    const current = await nativeChatScratchFolderFor(stateDirectory, 'old-codex')
     const legacy = join(stateDirectory, 'native-chat-visuals', basename(current))
     await mkdir(legacy, { recursive: true })
     await writeFile(join(legacy, 'chart.html'), '<p>chart</p>')

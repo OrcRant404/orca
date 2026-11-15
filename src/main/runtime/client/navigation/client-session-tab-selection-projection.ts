@@ -1,12 +1,13 @@
 import type { RuntimeMobileSessionClientTab } from '../../../../shared/runtime-mobile-session-tab-contracts'
 import type { RuntimeMobileSessionTabsResult } from '../../../../shared/runtime-session-contracts'
+import { visibleTabOrder } from '../../../../shared/workspace-layout/tab-visibility'
 import { pickNextActiveTabAfterClose } from '../../../../shared/workspace-session/workspace-session-terminal-tab-close'
 import { findSiblingGroupId } from '../../../../shared/workspace-layout/tab-group-layout-tree'
 
 export type ClientSessionTabSelection = {
   activeTabId: string | null
   activeGroupId: string | null
-  activeTabIdByGroupId: Readonly<Record<string, string>>
+  activeTabIdByGroupId: Readonly<Record<string, string | null>>
   /** Most recent last; drives fallback after close. */
   recentTabIds?: string[]
 }
@@ -35,7 +36,14 @@ function findTabByTopLevelId(
   if (!topLevelId) {
     return null
   }
-  return snapshot.tabs.find((tab) => topLevelTabId(tab) === topLevelId) ?? null
+  return (
+    snapshot.tabs.find(
+      (tab) =>
+        !tab.isHidden &&
+        (topLevelTabId(tab) === topLevelId ||
+          (tab.type === 'browser' && tab.browserWorkspaceId === topLevelId))
+    ) ?? null
+  )
 }
 
 export function deriveClientSessionTabSelection(
@@ -46,7 +54,10 @@ export function deriveClientSessionTabSelection(
     activeGroupId: snapshot.activeGroupId,
     activeTabIdByGroupId: Object.fromEntries(
       snapshot.tabGroups?.flatMap((group) =>
-        group.activeTabId ? [[group.id, group.activeTabId] as const] : []
+        group.activeTabId ||
+        snapshot.tabs.some((tab) => tab.isHidden && group.tabOrder.includes(topLevelTabId(tab)))
+          ? [[group.id, group.activeTabId] as const]
+          : []
       ) ?? []
     ),
     recentTabIds: snapshot.tabGroups?.flatMap((group) => group.recentTabIds ?? []) ?? []
@@ -87,12 +98,19 @@ export function projectClientSessionTabSelection(
   selection: ClientSessionTabSelection,
   before?: ClientSessionTabTopology
 ): { snapshot: RuntimeMobileSessionTabsResult; selection: ClientSessionTabSelection } {
-  const activeTabIdByGroupId: Record<string, string> = {}
+  const activeTabIdByGroupId: Record<string, string | null> = {}
   const tabGroups = snapshot.tabGroups?.map((group) => {
+    const visibleOrder = visibleTabOrder(
+      group.tabOrder,
+      snapshot.tabs.flatMap((tab) => [
+        { id: topLevelTabId(tab), isHidden: tab.isHidden },
+        ...(tab.type === 'browser' ? [{ id: tab.browserWorkspaceId, isHidden: tab.isHidden }] : [])
+      ])
+    )
     const selected = selection.activeTabIdByGroupId[group.id]
     // Match desktop close/move using this client's recency.
     const activeTabId =
-      selected && !group.tabOrder.includes(selected)
+      selected && !visibleOrder.includes(selected)
         ? pickNextActiveTabAfterClose(
             {
               tabOrder:
@@ -102,11 +120,17 @@ export function projectClientSessionTabSelection(
               recentTabIds: selection.recentTabIds ?? group.recentTabIds
             },
             new Set([selected]),
-            group.tabOrder,
-            new Set(group.tabOrder)
+            visibleOrder,
+            new Set(visibleOrder)
           )
-        : (selected ?? group.tabOrder[0] ?? null)
-    if (activeTabId) {
+        : selected === null
+          ? null
+          : (selected ?? visibleOrder[0] ?? null)
+    if (
+      activeTabId !== null ||
+      selected !== undefined ||
+      snapshot.tabs.some((tab) => tab.isHidden && group.tabOrder.includes(topLevelTabId(tab)))
+    ) {
       activeTabIdByGroupId[group.id] = activeTabId
     }
     return { ...group, activeTabId }
@@ -122,10 +146,9 @@ export function projectClientSessionTabSelection(
     shownGroups?.find((group) => group.id === siblingGroupId) ??
     shownGroups?.[0]
   const activeTab =
-    snapshot.tabs.find((tab) => tab.id === selection.activeTabId) ??
+    snapshot.tabs.find((tab) => !tab.isHidden && tab.id === selection.activeTabId) ??
     findTabByTopLevelId(snapshot, selectedGroup?.activeTabId) ??
-    findTabByTopLevelId(snapshot, selectedGroup?.tabOrder[0]) ??
-    snapshot.tabs[0] ??
+    (selectedGroup ? null : snapshot.tabs.find((tab) => !tab.isHidden)) ??
     null
   const activeTopLevelTabId = activeTab ? topLevelTabId(activeTab) : null
   const activeGroupId =

@@ -23,6 +23,7 @@ import { configureMacShipItScheduling } from '../mac-install/macos-shipit-schedu
 import { handleElectronUpdaterProxyLogin } from './electron-updater-proxy-session'
 import { resolveWindowsUpdateInstallDirectory } from './windows-update-install-directory'
 import type { PreQuitCleanupFailureMode, UpdateInstallMode } from './updater-state'
+import { MANUAL_FORK_UPDATE_MESSAGE, usesManualForkUpdates } from '../local-fork-update-policy'
 
 export type UpdaterSetupOptions = {
   getMainWindow?: () => BrowserWindow | null
@@ -41,18 +42,33 @@ export type UpdaterSetupOptions = {
 
 export class UpdaterSetup extends UpdaterDownloadInstall {
   checkForUpdates(): void {
+    if (usesManualForkUpdates()) {
+      return
+    }
     this.checkForUpdatesInBackground()
   }
 
   checkForUpdatesFromMenu(options?: UpdateCheckOptions): void {
+    if (usesManualForkUpdates()) {
+      this.sendErrorStatus(MANUAL_FORK_UPDATE_MESSAGE, true)
+      return
+    }
     super.checkForUpdatesFromMenu(options)
   }
 
   downloadUpdate(): void {
+    if (usesManualForkUpdates()) {
+      this.sendErrorStatus(MANUAL_FORK_UPDATE_MESSAGE, true)
+      return
+    }
     super.downloadUpdate()
   }
 
   quitAndInstall(): void {
+    if (usesManualForkUpdates()) {
+      this.sendErrorStatus(MANUAL_FORK_UPDATE_MESSAGE, true)
+      return
+    }
     super.quitAndInstall()
   }
 
@@ -103,6 +119,9 @@ export class UpdaterSetup extends UpdaterDownloadInstall {
     channel: ReleaseChannel,
     options?: ReleaseBuildListOptions
   ): Promise<ReleaseBuild[]> {
+    if (usesManualForkUpdates()) {
+      return []
+    }
     return super.listAvailableReleaseBuilds(channel, options)
   }
 
@@ -129,6 +148,10 @@ export class UpdaterSetup extends UpdaterDownloadInstall {
     this.getUpdateDelayDays = opts?.getUpdateDelayDays ?? null
     this.updateInstallMode = opts?.installMode ?? 'interactive'
     this.lastInstallDeferralVersion = { download: null, install: null }
+
+    if (usesManualForkUpdates()) {
+      return
+    }
 
     const serveHandoffFailure = getServeUpdateHandoffFailure()
     if (serveHandoffFailure) {

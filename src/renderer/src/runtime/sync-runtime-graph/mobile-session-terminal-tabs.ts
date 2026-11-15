@@ -24,6 +24,7 @@ export function buildMobileTerminalSurfaceTabs(
   terminal: NonNullable<AppState['tabsByWorktree'][string]>[number],
   unifiedTabId?: string
 ): RuntimeMobileSessionSnapshotTab[] {
+  const unifiedTab = inputs.unifiedTabs.find((tab) => tab.id === unifiedTabId)
   const capture = inputs.mountedSurfaceCaptureByTabId.get(terminal.id)
   const isDesktopTabActive = unifiedTabId
     ? isUnifiedTabActiveInActiveGroup(inputs, unifiedTabId)
@@ -102,6 +103,7 @@ export function buildMobileTerminalSurfaceTabs(
         : null
     return {
       type: 'terminal' as const,
+      isHidden: unifiedTab ? unifiedTab.isHidden === true : terminal.isHidden === true,
       id: mobileTerminalSurfaceId(terminal.id, leafId),
       title,
       // Why every surface: the name is tab-wide, and a paired desktop reads its active surface.

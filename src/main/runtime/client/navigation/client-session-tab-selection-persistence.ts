@@ -12,14 +12,14 @@ function normalizeClientSessionTabSelection(
   const candidate = raw as Partial<PersistedMobileClientTabSelection>
   const activeTabId = typeof candidate.activeTabId === 'string' ? candidate.activeTabId : null
   const activeGroupId = typeof candidate.activeGroupId === 'string' ? candidate.activeGroupId : null
-  const activeTabIdByGroupId: Record<string, string> = {}
+  const activeTabIdByGroupId: Record<string, string | null> = {}
   if (
     typeof candidate.activeTabIdByGroupId === 'object' &&
     candidate.activeTabIdByGroupId &&
     !Array.isArray(candidate.activeTabIdByGroupId)
   ) {
     for (const [groupId, tabId] of Object.entries(candidate.activeTabIdByGroupId)) {
-      if (typeof tabId === 'string') {
+      if (tabId === null || typeof tabId === 'string') {
         activeTabIdByGroupId[groupId] = tabId
       }
     }

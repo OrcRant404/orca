@@ -71,6 +71,7 @@ export type WindowLayoutCommand =
       type: 'setTabProps'
       tabId: string
       color?: string | null
+      isHidden?: boolean
       isPinned?: boolean
       viewMode?: 'terminal' | 'chat'
       clearLaunchAgent?: true

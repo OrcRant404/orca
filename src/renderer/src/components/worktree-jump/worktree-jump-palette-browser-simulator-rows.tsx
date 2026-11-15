@@ -1,3 +1,4 @@
+import { HiddenTabIndicator } from '@/components/hidden-tabs/HiddenTabIndicator'
 import type React from 'react'
 import { Smartphone } from 'lucide-react'
 import { CommandItem } from '@/components/ui/command'
@@ -72,6 +73,7 @@ export function WorktreeJumpPaletteSimulatorRow({
               sessionAge={simulatorSessionAge}
               leadingBadges={
                 <>
+                  {result.isHidden && <HiddenTabIndicator />}
                   {result.isCurrentTab && (
                     <span className="shrink-0 self-center rounded-[6px] border border-border/60 bg-background/45 px-1.5 py-px text-[9px] font-medium leading-normal text-muted-foreground/88">
                       {t('auto.components.WorktreeJumpPalette.52404f8096', 'Current Tab')}
@@ -167,6 +169,7 @@ export function WorktreeJumpPaletteBrowserRow({
               sessionAge={browserSessionAge}
               leadingBadges={
                 <>
+                  {result.isHidden && <HiddenTabIndicator />}
                   {result.isCurrentPage && (
                     <span className="shrink-0 self-center rounded-[6px] border border-border/60 bg-background/45 px-1.5 py-px text-[9px] font-medium leading-normal text-muted-foreground/88">
                       {t('auto.components.WorktreeJumpPalette.52404f8096', 'Current Tab')}

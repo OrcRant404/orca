@@ -40,7 +40,14 @@ export const AGENT_STATUS_RESTORED_UNCONFIRMED_RUNTIME_CAPABILITY =
 export const SESSION_TERMINAL_SCROLLBACK_READ_RUNTIME_CAPABILITY =
   'session.terminal-scrollback-read.v1' as const
 
+export const SESSION_TABS_TAB_HIDDEN_RUNTIME_CAPABILITY = 'session-tabs.tab-hidden.v1' as const
+
+export function supportsHiddenTabs(capabilities: readonly string[] | null | undefined): boolean {
+  return capabilities?.includes(SESSION_TABS_TAB_HIDDEN_RUNTIME_CAPABILITY) === true
+}
+
 export const SESSION_TABS_RUNTIME_CAPABILITIES = [
+  SESSION_TABS_TAB_HIDDEN_RUNTIME_CAPABILITY,
   QODER_OWNED_TERMINAL_CREATE_CAPABILITY,
   SESSION_TAB_CLOSE_INTENT_RUNTIME_CAPABILITY,
   SESSION_TAB_CLOSE_FORCE_RUNTIME_CAPABILITY,

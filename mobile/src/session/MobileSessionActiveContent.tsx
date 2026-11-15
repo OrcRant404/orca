@@ -150,9 +150,12 @@ export function MobileSessionActiveContent({
   const content =
     showLoadingState || showEmptyState || showOfflineState ? (
       <MobileSessionContentState
+        hiddenCount={controller.hiddenSessionTabs.length}
+        visibleCount={controller.visibleTabs.length}
+        onShowHidden={controller.openHiddenTabs}
         connState={presentedConnState}
         hostName={hostTitle}
-        lastTabs={controller.visibleTabs.length > 0 ? { hostId, worktreeId } : null}
+        lastTabs={controller.sessionTabs.length > 0 ? { hostId, worktreeId } : null}
         loading={showLoadingState}
         creating={createTabBusy}
         createError={createError}

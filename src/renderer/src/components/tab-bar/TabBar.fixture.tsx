@@ -2,6 +2,10 @@ import { useState } from 'react'
 import { DndContext } from '@dnd-kit/core'
 import { defineFixture } from '../../component-fixtures/component-fixture'
 import type { TerminalTab } from '../../../../shared/workspace-layout/terminal-tab-types'
+import { getDefaultSettings } from '../../../../shared/constants'
+import { ConfirmationDialogProvider } from '../confirmation-dialog'
+import { TabGroupPaneActionsMenu } from '../tab-group/TabGroupPaneActionsMenu'
+import { TabBarQuickCommandsButton } from './TabBarQuickCommandsButton'
 import TabBar from './TabBar'
 import type { TabBarProps } from './tab-bar-props'
 
@@ -20,11 +24,13 @@ function TabWidthFixture({
   browserTabs,
   clientHostedBrowserRows,
   editorFiles,
-  tabBarOrder
+  tabBarOrder,
+  header = false
 }: {
   count: number
   titles?: string[]
   agentTabs?: boolean
+  header?: boolean
 } & Pick<
   TabBarProps,
   'browserTabs' | 'clientHostedBrowserRows' | 'editorFiles' | 'tabBarOrder'
@@ -44,30 +50,44 @@ function TabWidthFixture({
 
   return (
     <DndContext>
-      <div className="@container/tab-strip h-8 bg-card">
-        <TabBar
-          tabs={tabs}
-          activeTabId={activeTabId}
-          activeTabType="terminal"
-          worktreeId={WORKSPACE_ID}
-          groupId="tab-width-group"
-          browserTabs={browserTabs}
-          clientHostedBrowserRows={clientHostedBrowserRows}
-          editorFiles={editorFiles}
-          tabBarOrder={tabBarOrder}
-          expandedPaneByTabId={{}}
-          showAgentLaunchItems={false}
-          onActivate={setActiveTabId}
-          onClose={noop}
-          onCloseOthers={noop}
-          onCloseToRight={noop}
-          onCloseToLeft={noop}
-          onNewTerminalTab={noop}
-          onNewBrowserTab={noop}
-          onSetCustomTitle={noop}
-          onSetTabColor={noop}
-          onTogglePaneExpand={noop}
-        />
+      <div className="@container/tab-strip h-8 bg-tab-bar">
+        <div className="flex h-full items-stretch pr-1.5">
+          <div className="min-w-0 flex-1 h-full">
+            <TabBar
+              tabs={tabs}
+              activeTabId={activeTabId}
+              activeTabType="terminal"
+              worktreeId={WORKSPACE_ID}
+              groupId="tab-width-group"
+              browserTabs={browserTabs}
+              clientHostedBrowserRows={clientHostedBrowserRows}
+              editorFiles={editorFiles}
+              tabBarOrder={tabBarOrder}
+              expandedPaneByTabId={{}}
+              showAgentLaunchItems={false}
+              onActivate={setActiveTabId}
+              onClose={noop}
+              onCloseOthers={noop}
+              onCloseToRight={noop}
+              onCloseToLeft={noop}
+              onNewTerminalTab={noop}
+              onNewBrowserTab={noop}
+              onSetCustomTitle={noop}
+              onSetTabColor={noop}
+              onTogglePaneExpand={noop}
+            />
+          </div>
+          {header ? (
+            <div className="ml-1.5 flex shrink-0 items-center gap-0.5 transition-opacity duration-150">
+              <TabBarQuickCommandsButton
+                worktreeId={WORKSPACE_ID}
+                groupId="tab-width-group"
+                isFocused
+              />
+              <TabGroupPaneActionsMenu isFocused onCloseGroup={noop} />
+            </div>
+          ) : null}
+        </div>
       </div>
     </DndContext>
   )
@@ -290,4 +310,82 @@ function AgentIdentityFixture(): React.JSX.Element {
 export const agentIdentityChanges = defineFixture({
   width: 900,
   render: () => <AgentIdentityFixture />
+})
+
+const headerStore = {
+  settings: {
+    ...getDefaultSettings('/fixture'),
+    terminalQuickCommands: [
+      {
+        id: 'fixture',
+        label: 'Bounded Research & Implementation for a long project',
+        command: 'echo fixture',
+        appendEnter: true,
+        scope: { type: 'global' as const }
+      }
+    ]
+  },
+  recentQuickCommandIdByGroup: { 'tab-width-group': 'fixture' },
+  repos: [
+    {
+      id: WORKSPACE_ID,
+      path: '/repo/fixture',
+      displayName: 'Fixture',
+      badgeColor: 'blue',
+      addedAt: 1
+    }
+  ]
+}
+
+export const headerFewTabs = defineFixture({
+  width: 1280,
+  store: headerStore,
+  render: () => (
+    <ConfirmationDialogProvider>
+      <TabWidthFixture count={2} header />
+    </ConfirmationDialogProvider>
+  )
+})
+
+export const headerOverflow = defineFixture({
+  width: 420,
+  store: headerStore,
+  render: () => (
+    <ConfirmationDialogProvider>
+      <TabWidthFixture count={12} header />
+    </ConfirmationDialogProvider>
+  ),
+  interact: (frame) => {
+    const strip = frame.querySelector('.terminal-tab-strip')
+    if (strip) {
+      strip.scrollLeft = strip.scrollWidth
+    }
+  }
+})
+
+export const headerDetail = defineFixture({
+  width: 600,
+  store: headerStore,
+  render: () => (
+    <ConfirmationDialogProvider>
+      <TabWidthFixture count={1} titles={['Terminal 1']} header />
+    </ConfirmationDialogProvider>
+  )
+})
+
+export const headerPaneActionsOpen = defineFixture({
+  width: 600,
+  store: headerStore,
+  render: () => (
+    <ConfirmationDialogProvider>
+      <div className="h-32">
+        <TabWidthFixture count={1} titles={['Terminal 1']} header />
+      </div>
+    </ConfirmationDialogProvider>
+  ),
+  interact: (frame) => {
+    frame
+      .querySelector<HTMLButtonElement>('button[aria-label="Pane Actions"]')
+      ?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0 }))
+  }
 })

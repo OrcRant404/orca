@@ -164,7 +164,7 @@ export abstract class OrcaRuntimeWithPerformMobileSessionPtyRecordsRefresh exten
         snapshot?.tabs.find(
           (candidate) => candidate.type === 'browser' && candidate.browserWorkspaceId === tabId
         ))
-    if (!tab) {
+    if (!tab || tab.isHidden) {
       throw new Error('tab_not_found')
     }
 

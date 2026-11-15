@@ -193,7 +193,8 @@ export function useMobileSessionTabApplication(scope: MobileSessionTerminalListM
       const resolved = resolveActiveSessionTab(nextTabs, {
         pendingActiveSessionTabId,
         selectedSessionTabId: selectedSessionTabIdRef.current,
-        navigationIntent: result.navigationIntent
+        navigationIntent: result.navigationIntent,
+        snapshot: result
       })
       let active = resolved.activeTab
       let selectionSource: string = resolved.selectionSource
@@ -207,7 +208,14 @@ export function useMobileSessionTabApplication(scope: MobileSessionTerminalListM
           pendingSelectionRef.current = withoutPendingTabId(pendingSelectionRef.current)
         }
       }
-      if (pendingActiveTerminalHandle) {
+      const hiddenPendingHandle = nextTabs.some(
+        (tab) =>
+          tab.type === 'terminal' && tab.terminal === pendingActiveTerminalHandle && tab.isHidden
+      )
+      if (hiddenPendingHandle) {
+        pendingSelectionRef.current = withoutPendingHandle(pendingSelectionRef.current)
+      }
+      if (pendingActiveTerminalHandle && !hiddenPendingHandle) {
         const pendingTerminalTab = nextTabs.find(
           (tab): tab is Extract<MobileSessionTab, { type: 'terminal' }> =>
             tab.type === 'terminal' && tab.terminal === pendingActiveTerminalHandle
@@ -216,7 +224,7 @@ export function useMobileSessionTabApplication(scope: MobileSessionTerminalListM
           (terminal) => terminal.handle === pendingActiveTerminalHandle
         )
         if (active?.type === 'terminal' && active.terminal === pendingActiveTerminalHandle) {
-          const snapshotActive = nextTabs.find((tab) => tab.isActive) ?? nextTabs[0] ?? null
+          const snapshotActive = nextTabs.find((tab) => !tab.isHidden && tab.isActive) ?? null
           if (
             snapshotActive?.type === 'terminal' &&
             snapshotActive.terminal === pendingActiveTerminalHandle &&
@@ -254,10 +262,8 @@ export function useMobileSessionTabApplication(scope: MobileSessionTerminalListM
       if (active?.type === 'terminal') {
         if (typeof active.terminal !== 'string') {
           const previous = activeHandleRef.current
-          if (previous) {
-            if (!keepsTerminalPaneVisible(previous, visibleTerminalHandlesRef?.current)) {
-              unsubscribeTerminal(previous)
-            }
+          if (previous && !keepsTerminalPaneVisible(previous, visibleTerminalHandlesRef?.current)) {
+            unsubscribeTerminal(previous)
           }
           activeHandleRef.current = null
           setActiveHandle(null)
@@ -272,13 +278,19 @@ export function useMobileSessionTabApplication(scope: MobileSessionTerminalListM
         activeHandleRef.current = active.terminal
         setActiveHandle(active.terminal)
         subscribeToTerminal(active.terminal)
-      } else if (active) {
-        // Transient empty snapshots may omit a live terminal; only explicit successful close clears it.
+      } else if (
+        active ||
+        result.activeTabId !== undefined ||
+        result.activeGroupId !== undefined ||
+        nextTabs.some(
+          (tab) =>
+            tab.isHidden && tab.type === 'terminal' && tab.terminal === activeHandleRef.current
+        )
+      ) {
+        // Legacy snapshots may transiently omit a live terminal without declaring selection.
         const previous = activeHandleRef.current
-        if (previous) {
-          if (!keepsTerminalPaneVisible(previous, visibleTerminalHandlesRef?.current)) {
-            unsubscribeTerminal(previous)
-          }
+        if (previous && !keepsTerminalPaneVisible(previous, visibleTerminalHandlesRef?.current)) {
+          unsubscribeTerminal(previous)
         }
         activeHandleRef.current = null
         setActiveHandle(null)

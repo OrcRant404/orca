@@ -2,6 +2,7 @@ import type { RefObject } from 'react'
 import type { View } from 'react-native'
 import {
   Columns2,
+  EyeOff,
   Folder,
   GitBranch,
   ListChecks,
@@ -117,6 +118,16 @@ export function MobileSessionHeaderMoreMenu({ controller, anchorRef, actionsColl
       : []
   const tabs: ActionSheetAction[] = actionsCollapsed
     ? [
+        {
+          id: 'hiddenTabs',
+          label: t('session.hidden.title', 'Hidden tabs'),
+          icon: EyeOff,
+          hint: controller.hiddenSessionTabs.length
+            ? String(controller.hiddenSessionTabs.length)
+            : undefined,
+          closeBeforePress: true,
+          onPress: controller.openHiddenTabs
+        },
         {
           id: 'newTab',
           label: t('session.header.newTab', 'New tab'),

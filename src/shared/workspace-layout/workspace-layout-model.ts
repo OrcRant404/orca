@@ -28,6 +28,7 @@ type LayoutTabFields = {
   aiVaultTitle?: AiVaultSessionTitle | null
   quickCommandLabel?: string | null
   color: string | null
+  isHidden?: boolean
   isPinned?: boolean
   viewMode?: 'terminal' | 'chat'
   isPreview?: boolean

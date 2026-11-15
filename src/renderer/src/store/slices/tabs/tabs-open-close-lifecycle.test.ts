@@ -167,3 +167,112 @@ describe('TabsSlice', () => {
     })
   })
 })
+
+it('hides without closing and never selects hidden tabs when the visible tab closes', () => {
+  const store = createTestStore()
+  const groupId = 'visibility-group'
+  store.setState({
+    activeWorktreeId: WT,
+    activeGroupIdByWorktree: { [WT]: groupId },
+    unifiedTabsByWorktree: {
+      [WT]: [
+        makeUnifiedTab({ id: 'visible-a', worktreeId: WT, groupId, contentType: 'simulator' }),
+        makeUnifiedTab({ id: 'hidden', worktreeId: WT, groupId, contentType: 'simulator' }),
+        makeUnifiedTab({ id: 'visible-b', worktreeId: WT, groupId, contentType: 'simulator' })
+      ]
+    },
+    groupsByWorktree: {
+      [WT]: [
+        makeTabGroup({
+          id: groupId,
+          worktreeId: WT,
+          tabOrder: ['visible-a', 'hidden', 'visible-b'],
+          activeTabId: 'hidden',
+          recentTabIds: ['visible-a', 'hidden']
+        })
+      ]
+    }
+  })
+  store.getState().applyTabHidden(WT, 'hidden', true)
+  expect(store.getState().groupsByWorktree[WT]![0]!.activeTabId).toBe('visible-a')
+  expect(store.getState().groupsByWorktree[WT]![0]!.tabOrder).toEqual([
+    'visible-a',
+    'hidden',
+    'visible-b'
+  ])
+  store.getState().closeUnifiedTab('visible-a')
+  expect(store.getState().groupsByWorktree[WT]![0]!.activeTabId).toBe('visible-b')
+  store.getState().closeUnifiedTab('visible-b')
+  expect(store.getState().groupsByWorktree[WT]![0]!).toMatchObject({
+    activeTabId: null,
+    tabOrder: ['hidden']
+  })
+  expect(store.getState().unifiedTabsByWorktree[WT]!).toMatchObject([
+    { id: 'hidden', isHidden: true }
+  ])
+})
+
+it('keeps the active group and legacy surfaces unselected after unhide until explicit activation', () => {
+  const store = createTestStore()
+  store.setState({
+    activeWorktreeId: WT,
+    activeGroupIdByWorktree: { [WT]: 'restore-group' },
+    activeTabId: 'restored-terminal',
+    activeTabIdByWorktree: { [WT]: 'restored-terminal' },
+    tabsByWorktree: {
+      [WT]: [
+        makeTab({ id: 'other-terminal', worktreeId: WT }),
+        makeTab({ id: 'restored-terminal', worktreeId: WT })
+      ]
+    },
+    unifiedTabsByWorktree: {
+      [WT]: [
+        makeUnifiedTab({
+          id: 'other-tab',
+          entityId: 'other-terminal',
+          worktreeId: WT,
+          groupId: 'other-group'
+        }),
+        makeUnifiedTab({
+          id: 'restored-tab',
+          entityId: 'restored-terminal',
+          worktreeId: WT,
+          groupId: 'restore-group'
+        })
+      ]
+    },
+    groupsByWorktree: {
+      [WT]: [
+        makeTabGroup({
+          id: 'other-group',
+          worktreeId: WT,
+          tabOrder: ['other-tab'],
+          activeTabId: 'other-tab'
+        }),
+        makeTabGroup({
+          id: 'restore-group',
+          worktreeId: WT,
+          tabOrder: ['restored-tab'],
+          activeTabId: 'restored-tab'
+        })
+      ]
+    }
+  })
+
+  store.getState().applyTabHidden(WT, 'restored-tab', true)
+  expect(store.getState().activeTabId).toBeNull()
+  store.getState().applyTabHidden(WT, 'restored-tab', false)
+  expect(store.getState().groupsByWorktree[WT]![1]).toMatchObject({
+    activeTabId: null,
+    tabOrder: ['restored-tab']
+  })
+  expect(store.getState().activeTabId).toBeNull()
+  expect(store.getState().activeTabIdByWorktree[WT]).toBeNull()
+  expect(store.getState().unifiedTabsByWorktree[WT]![1]).toMatchObject({ isHidden: false })
+
+  store.getState().activateTab('restored-tab')
+  store.getState().setActiveTab('restored-terminal')
+  expect(store.getState().groupsByWorktree[WT]![1]!.activeTabId).toBe('restored-tab')
+  expect(store.getState().activeTabId).toBe('restored-terminal')
+  expect(store.getState().activeTabIdByWorktree[WT]).toBe('restored-terminal')
+})

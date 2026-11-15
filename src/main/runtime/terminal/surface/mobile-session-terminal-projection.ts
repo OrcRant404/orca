@@ -89,6 +89,7 @@ export function buildHeadlessMobileSessionTerminalTabs(
             ...(tabWide && tab.launchAgent ? { launchAgent: tab.launchAgent } : {}),
             ...(layout ? { parentLayout: cloneTerminalLayoutSnapshot(layout) } : {}),
             ...(tab.color != null ? { color: tab.color } : {}),
+            ...(tab.isHidden !== undefined ? { isHidden: tab.isHidden } : {}),
             ...(tab.isPinned ? { isPinned: true } : {}),
             ...(tab.viewMode ? { viewMode: tab.viewMode } : {}),
             isActive: isPersistedTerminalLeafActive(selection, worktreeId, tab.id, leafId, layout)

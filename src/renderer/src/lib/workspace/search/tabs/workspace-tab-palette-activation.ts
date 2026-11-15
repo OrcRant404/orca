@@ -155,3 +155,15 @@ export function activateWorkspaceTabPaletteResult(
   state.setActiveTabType('editor', result.worktreeId)
   return { status: 'activated' }
 }
+
+export async function unhideAndActivateWorkspaceTabPaletteResult(
+  result: WorkspaceTabPaletteActivationTarget
+): Promise<WorkspaceTabPaletteActivationResult> {
+  const failure = validateTarget(useAppStore.getState(), result)
+  if (failure) {
+    return { status: 'failed', reason: failure }
+  }
+  const { unhideTabForActivation } = await import('@/store/slices/tabs/tabs-visibility-actions')
+  await unhideTabForActivation(result.worktreeId, result.tabId)
+  return activateWorkspaceTabPaletteResult(result)
+}

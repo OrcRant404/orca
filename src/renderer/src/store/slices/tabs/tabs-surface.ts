@@ -39,9 +39,19 @@ export function deriveActiveSurfaceForWorktree(
     activeUnifiedTabId != null
       ? ((state.unifiedTabsByWorktree[worktreeId] ?? []).find(
           (tab) =>
-            tab.id === activeUnifiedTabId && activeGroup != null && tab.groupId === activeGroup.id
+            !tab.isHidden &&
+            tab.id === activeUnifiedTabId &&
+            activeGroup != null &&
+            tab.groupId === activeGroup.id
         ) ?? null)
       : null
+  const unselectedGroup =
+    activeGroup &&
+    !activeUnifiedTab &&
+    (activeGroup.activeTabId === null ||
+      activeGroup.tabOrder.some((id) =>
+        state.unifiedTabsByWorktree[worktreeId]?.some((tab) => tab.id === id && tab.isHidden)
+      ))
   const restoredFileId = state.activeFileIdByWorktree[worktreeId] ?? null
   const restoredBrowserTabId = state.activeBrowserTabIdByWorktree[worktreeId] ?? null
   const restoredTerminalTabId = state.activeTabIdByWorktree[worktreeId] ?? null
@@ -71,7 +81,11 @@ export function deriveActiveSurfaceForWorktree(
   let activeBrowserTabId: string | null
   let activeTabType: WorkspaceVisibleTabType
 
-  if (activeUnifiedTab) {
+  if (unselectedGroup) {
+    activeFileId = null
+    activeBrowserTabId = null
+    activeTabType = 'terminal'
+  } else if (activeUnifiedTab) {
     activeFileId = isEditorTabContentType(activeUnifiedTab.contentType)
       ? activeUnifiedTab.entityId
       : fileStillOpen
@@ -117,8 +131,9 @@ export function deriveActiveSurfaceForWorktree(
   return {
     activeBrowserTabId,
     activeFileId,
-    activeTabId:
-      activeUnifiedTab?.contentType === 'terminal'
+    activeTabId: unselectedGroup
+      ? null
+      : activeUnifiedTab?.contentType === 'terminal'
         ? activeUnifiedTab.entityId
         : terminalTabStillExists
           ? restoredTerminalTabId

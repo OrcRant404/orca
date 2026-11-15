@@ -28,6 +28,11 @@ export type PaneLayoutEdit = {
 }
 
 export abstract class OrcaRuntimeWithMainLayoutRenames extends OrcaRuntimeWithMainLayoutAgentLaunchTabs {
+  protected abstract mainLayoutTabOfRow(
+    worktreeId: string,
+    rowId: string | undefined
+  ): string | undefined
+
   protected abstract persistHeadlessTerminalTitle(
     ...args: Parameters<PersistHeadlessTerminalTitleMethods['persistHeadlessTerminalTitle']>
   ): ReturnType<PersistHeadlessTerminalTitleMethods['persistHeadlessTerminalTitle']>
@@ -126,24 +131,35 @@ export abstract class OrcaRuntimeWithMainLayoutRenames extends OrcaRuntimeWithMa
     return { handle, tabId: pane.tabId, leafId: pane.leafId, title: normalizedTitle }
   }
 
-  /** A phone's tab props for a terminal tab main owns; false for any other tab. */
+  /** Shared props for any tab main owns; terminal title edits also stamp live panes. */
   protected async setMainTabProps(
     worktreeId: string,
     tabId: string,
     props: {
       color?: string | null
       isPinned?: boolean
+      isHidden?: boolean
       viewMode?: 'terminal' | 'chat'
       customTitle?: string | null
     }
   ): Promise<boolean> {
-    const panes = this.mainOwnedTabPanes(worktreeId, tabId)
-    if (!panes) {
+    const hostId = this.tryGetWorkspaceSessionHostIdForWorktree(worktreeId)
+    const workspace = hostId
+      ? this.workspaceLayoutReads.readPartition(hostId)?.layout.workspaces[worktreeId]
+      : undefined
+    if (!workspace) {
       return false
     }
-    const { customTitle, ...tabProps } = props
+    const targetTabId = this.mainLayoutTabOfRow(worktreeId, tabId)
+    if (!targetTabId) {
+      throw new Error('tab_not_found')
+    }
+    tabId = targetTabId
+    const panes = this.mainOwnedTabPanes(worktreeId, tabId) ?? []
+    const { customTitle, color, isPinned, isHidden, viewMode } = props
+    const tabProps = { color, isPinned, isHidden, viewMode }
     if (Object.values(tabProps).some((value) => value !== undefined)) {
-      await this.applyMainRename({ type: 'setTabProps', workspace: worktreeId, tabId, ...tabProps })
+      await this.applyMainRename({ type: 'setTabProps', workspace: worktreeId, ...tabProps, tabId })
     }
     if (customTitle !== undefined) {
       // Why by tab: a sleeping or starting pane has no handle for terminal.rename to name (#29975).

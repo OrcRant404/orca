@@ -166,6 +166,7 @@ function projectTab(tab: LayoutTab, scope: Scope): RuntimeMobileSessionSnapshotT
 
 const tabProps = (tab: LayoutTab) => ({
   ...(tab.color != null ? { color: tab.color } : {}),
+  ...(tab.isHidden !== undefined ? { isHidden: tab.isHidden } : {}),
   ...(tab.isPinned ? { isPinned: true } : {})
 })
 
@@ -258,6 +259,7 @@ function browserRow(tab: LayoutContentTab, scope: Scope): RuntimeMobileSessionBr
     loadError: live.loadError,
     color: tab.color ?? null,
     isPinned: tab.isPinned === true,
+    ...(tab.isHidden !== undefined ? { isHidden: tab.isHidden } : {}),
     isActive: scope.activeTabId === tab.id
   }
 }

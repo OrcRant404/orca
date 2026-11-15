@@ -64,6 +64,7 @@ function editorTab(
       editorTabNamesFile(editorWorkspace(session, worktreeId), activeFileId, file),
     color: unifiedTab?.color ?? null,
     isPinned: unifiedTab?.isPinned === true,
+    ...(unifiedTab?.isHidden !== undefined ? { isHidden: unifiedTab.isHidden } : {}),
     ...editorRowHost(file)
   }
   if (file.language === 'markdown') {

@@ -61,8 +61,8 @@ function isAdmissibleExtensionPageAttach(partition: string, src: string): boolea
   return Boolean(sess?.extensions.getExtension(extensionUrl.extensionId))
 }
 
-export function installMainWindowWebviewSecurity(mainWindow: BrowserWindow): void {
-  installNativeChatVisualGuestTheme(mainWindow)
+export function installMainWindowWebviewSecurity(mainWindow: BrowserWindow): Promise<void> {
+  const themePreparation = installNativeChatVisualGuestTheme(mainWindow)
   installPrivilegedWindowNavigationPolicy(mainWindow.webContents)
   // Why: plugin panels are frames of this renderer; same IP-handling fence as doc preview guests.
   mainWindow.webContents.setWebRTCIPHandlingPolicy('disable_non_proxied_udp')
@@ -168,6 +168,7 @@ export function installMainWindowWebviewSecurity(mainWindow: BrowserWindow): voi
     enforceLocalSshWebRtcPolicyForGuest(guest)
     attachBrowserPasswordGuest(guest)
   })
+  return themePreparation
 }
 
 // Derived by Electron from the embedder (zoom follows the host window); everything else is pinned.

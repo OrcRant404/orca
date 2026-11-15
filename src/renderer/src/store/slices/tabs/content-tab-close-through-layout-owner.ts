@@ -36,10 +36,20 @@ function selectAfterClose(
   const activeGroupId = state.activeGroupIdByWorktree[worktreeId]
   const group = state.groupsByWorktree[worktreeId]?.find((entry) => entry.id === tab.groupId)
   const next =
-    group && nextActiveTabId && group.tabOrder.includes(nextActiveTabId)
+    group &&
+    nextActiveTabId &&
+    group.tabOrder.includes(nextActiveTabId) &&
+    state.unifiedTabsByWorktree[worktreeId]?.some(
+      (entry) => entry.id === nextActiveTabId && !entry.isHidden
+    )
       ? nextActiveTabId
       : group
-        ? pickNextActiveTab(group.tabOrder, group.recentTabIds, tab.id)
+        ? pickNextActiveTab(
+            group.tabOrder,
+            group.recentTabIds,
+            tab.id,
+            state.unifiedTabsByWorktree[worktreeId]
+          )
         : null
   if (next && group?.activeTabId !== next) {
     state.activateTab(next, { worktreeId, preservePreview: true, recordFocus: false })

@@ -1,3 +1,4 @@
+import { visibleActiveTabId } from '../../../../../shared/workspace-layout/tab-visibility'
 import { legacyEditorTabs } from './legacy-editor-tab-hydration'
 import { structuredLaunchSlotIds } from '@/lib/agent-session/launch/structured-agent-session-launch-persistence'
 import type { Tab, TabGroup, TabGroupLayoutNode } from '../../../../../shared/tab-types'
@@ -168,10 +169,14 @@ export function buildHydratedTabState(
           .filter((tid) => tabOwners.get(tid) === g.id || slots.has(tid))
       )
       const canonicalActiveTabId = g.activeTabId ? canonicalTabId(g.activeTabId) : null
-      const activeTabId =
+      const activeTabId = visibleActiveTabId(
+        tabOrder,
+        g.recentTabIds,
         canonicalActiveTabId && tabOwners.get(canonicalActiveTabId) === g.id
           ? canonicalActiveTabId
-          : null
+          : null,
+        hydratedTabsForWorktree
+      )
       // Sanitize stale MRU IDs and put active tab last so first close restores prior selection rather than a neighbor.
       const sanitizedRecent = sanitizeRecentTabIds(
         g.recentTabIds?.map(canonicalTabId),

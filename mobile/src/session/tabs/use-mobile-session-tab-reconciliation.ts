@@ -1,5 +1,7 @@
+import { supportsHiddenTabs } from '../../../../src/shared/session-tabs-runtime-capabilities'
 import { useEffect, useRef, useCallback, useMemo, useState } from 'react'
 import { startRuntimeCapabilityProbe } from '../../transport/connection/runtime-capability-probe'
+import { hostConnectionEpoch } from '../../query/host-status-query'
 import { supportsMobileQuickCommands } from '../../terminal/quick-commands'
 import { terminalQuickCommandAgentPromptMaxLength } from '../../../../src/shared/terminal/quick-commands/terminal-quick-command-prompt-limit'
 import { MOBILE_AI_VAULT_CAPABILITY } from '../../agent-history/agent-history-capability'
@@ -48,6 +50,19 @@ export function useMobileSessionTabReconciliation(scope: MobileSessionMarkdownAc
     terminalInventoryRecoveryScope,
     registerTerminalInventoryRecoveryAction
   } = scope
+  const connectionEpoch = client ? hostConnectionEpoch(client) : null
+  const capabilityProbe = useMemo(
+    () => ({ client, hostId, connectionEpoch, connState }),
+    [client, hostId, connectionEpoch, connState]
+  )
+  const [hiddenTabsCapability, setHiddenTabsCapability] = useState<{
+    probe: typeof capabilityProbe
+    supported: boolean
+  } | null>(null)
+  const hiddenTabsSupported =
+    connState === 'connected' && hiddenTabsCapability?.probe === capabilityProbe
+      ? hiddenTabsCapability.supported
+      : null
   const [parkedPendingTerminalContext, setParkedPendingTerminalContext] = useState<string | null>(
     null
   )
@@ -195,6 +210,10 @@ export function useMobileSessionTabReconciliation(scope: MobileSessionMarkdownAc
     hostProgramStatusSupportedRef.current = false
     // Retry status after cutover/timeouts even when connection state never changes or features can remain hidden forever.
     return startRuntimeCapabilityProbe(client, (capabilities) => {
+      setHiddenTabsCapability({
+        probe: capabilityProbe,
+        supported: supportsHiddenTabs(capabilities)
+      })
       setBrowserScreencastSupported(capabilities.includes('browser.screencast.v1'))
       setAgentSessionHistorySupported(capabilities.includes(MOBILE_AI_VAULT_CAPABILITY))
       setAgentSessionHostSupport(structuredAgentSessionHostSupport(capabilities))
@@ -208,8 +227,9 @@ export function useMobileSessionTabReconciliation(scope: MobileSessionMarkdownAc
         PROGRAM_STATUS_RUNTIME_CAPABILITY
       )
     })
-  }, [client, connState])
+  }, [client, connState, capabilityProbe])
   return {
+    hiddenTabsSupported,
     readLastSessionTabs,
     watchLastSessionTabs,
     forgetLastSessionTab,

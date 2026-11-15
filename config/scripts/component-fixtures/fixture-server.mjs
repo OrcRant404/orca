@@ -88,9 +88,23 @@ async function handleShot(runner, body) {
     body.theme === 'both' ? ['dark', 'light'] : [body.theme === 'light' ? 'light' : 'dark']
   const scale = Number(body.scale) > 0 ? Number(body.scale) : 1
   const outDir = body.outDir || fixtureCacheDir
-  // Why: exact ids skip listing, which would import every fixture module after an edit.
-  const exact = patterns.every((pattern) => pattern.includes(':') && !pattern.includes('*'))
-  const knownIds = exact ? patterns : (await runner.listFixtures()).map((entry) => entry.id)
+  // Why: a bare component id lists only its variants instead of importing every fixture module.
+  const allIds = patterns.some((pattern) => pattern.includes('*'))
+    ? (await runner.listFixtures()).map((entry) => entry.id)
+    : null
+  const knownIds = (
+    await Promise.all(
+      patterns.map(async (pattern) => {
+        if (pattern.includes('*')) {
+          return allIds
+        }
+        if (pattern.includes(':')) {
+          return [pattern]
+        }
+        return (await runner.listFixtures(pattern)).map((entry) => entry.id)
+      })
+    )
+  ).flat()
   const ids = [...new Set(patterns.flatMap((pattern) => matchFixtureIds(knownIds, pattern)))]
   if (ids.length === 0) {
     return { results: [], error: `No fixture matches ${patterns.join(', ')}.`, knownIds }

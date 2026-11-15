@@ -61,7 +61,7 @@ export function useFloatingWorkspaceChromeModel() {
     () =>
       model.tabBarOrder.filter((visibleId) => {
         const tab = resolveGroupTabFromVisibleId(groupTabs, visibleId)
-        if (!tab) {
+        if (!tab || tab.isHidden) {
           return false
         }
         if (tab.contentType === 'terminal') {

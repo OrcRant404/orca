@@ -31,7 +31,7 @@ export const STRUCTURED_AGENT_SESSION_VISUAL_METHODS = [
         return { ok: false, error: 'unsupported_location' }
       }
       // The same state directory the chat host and its journal are opened in on this process.
-      const folder = nativeChatScratchFolderFor(getProfileUserDataPath(), params.sessionId)
+      const folder = await nativeChatScratchFolderFor(getProfileUserDataPath(), params.sessionId)
       return readNativeChatVisualFile(folder, params.file, params.knownRevision)
     }
   })

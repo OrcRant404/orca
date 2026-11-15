@@ -85,6 +85,66 @@ function withoutTab(frame: PublishedWorkspaceLayout, tabId: string): PublishedWo
 }
 
 describe('laying frame slices over the store', () => {
+  it('preserves an explicitly unselected group through hidden and unhide-only frames', async () => {
+    const { session, frame } = await restored()
+    const { facts, desktopView } = loadWorkspaceLayoutWithoutReport(
+      'local',
+      session,
+      nameBasedLoadContext()
+    )
+    const view = {
+      ...desktopView,
+      groups: {
+        ...desktopView.groups,
+        [GIT_KEY]: {
+          ...desktopView.groups[GIT_KEY],
+          'group-a': { activeTabId: null, recentTabIds: ['tab-shell', 'tab-agent'] }
+        }
+      }
+    }
+    const hidden = {
+      ...frame,
+      tabs: frame.tabs.map((tab) =>
+        tab.id === 'tab-shell' || tab.id === 'tab-agent' || tab.id === 'editor:src/app.ts'
+          ? { ...tab, isHidden: true }
+          : tab
+      )
+    }
+    const hiddenSlices = buildLayoutFrameSlices({ layouts: { [GIT_KEY]: hidden }, facts, view })
+    expect(hiddenSlices.groupsByWorktree[GIT_KEY]![0]).toMatchObject({
+      activeTabId: null,
+      tabOrder: ['tab-shell', 'tab-agent', 'editor:src/app.ts']
+    })
+    const restoredSlices = buildLayoutFrameSlices({ layouts: { [GIT_KEY]: frame }, facts, view })
+    expect(restoredSlices.groupsByWorktree[GIT_KEY]![0]).toMatchObject({
+      activeTabId: null,
+      tabOrder: ['tab-shell', 'tab-agent', 'editor:src/app.ts']
+    })
+  })
+
+  it('uses only visible tabs for a newly framed group without a view selection', async () => {
+    const { session, frame } = await restored()
+    const { facts, desktopView } = loadWorkspaceLayoutWithoutReport(
+      'local',
+      session,
+      nameBasedLoadContext()
+    )
+    const slices = buildLayoutFrameSlices({
+      layouts: {
+        [GIT_KEY]: {
+          ...frame,
+          tabs: frame.tabs.map((tab) => (tab.id === 'tab-shell' ? { ...tab, isHidden: true } : tab))
+        }
+      },
+      facts,
+      view: { ...desktopView, groups: {} }
+    })
+    expect(slices.groupsByWorktree[GIT_KEY]![0]).toMatchObject({
+      activeTabId: 'tab-agent',
+      tabOrder: ['tab-shell', 'tab-agent', 'editor:src/app.ts']
+    })
+  })
+
   it('retains editor content referenced by another workspace or a pending open and drops unreferenced content', async () => {
     const { state, session, frame } = await restored()
     const files = [

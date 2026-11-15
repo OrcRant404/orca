@@ -134,3 +134,21 @@ it('reopening caller visibility retains host-follow policy without changing a by
   ).toBe('b')
   expect(store.serialize()).toEqual({})
 })
+
+it('moves every device away from hidden tabs and retains null selection across unhide and reload', () => {
+  const store = new ClientSessionTabSelectionStore()
+  const full = browserStrip(['a', 'b'])
+  store.activate(full, 'device-a', 'a')
+  store.activate(full, 'device-b', 'b')
+  const hidden = { ...full, tabs: full.tabs.map((tab) => ({ ...tab, isHidden: true })) }
+  store.followHiddenTabs(hidden)
+  const restored = new ClientSessionTabSelectionStore()
+  restored.hydrate(store.serialize())
+  for (const device of ['device-a', 'device-b']) {
+    expect(restored.project(full, device)).toMatchObject({
+      activeGroupId: 'group',
+      activeTabId: null,
+      tabGroups: [{ id: 'group', activeTabId: null, tabOrder: ['a', 'b'] }]
+    })
+  }
+})

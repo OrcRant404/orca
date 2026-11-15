@@ -13,6 +13,7 @@ import type {
   PublishedWorkspaceLayout
 } from '../../../../../shared/workspace-layout/workspace-layout-published'
 import { saveWorkspaceLayout } from '../../../../../shared/workspace-layout/workspace-layout-save'
+import { visibleTabOrder } from '../../../../../shared/workspace-layout/tab-visibility'
 import type { WorkspaceSessionState } from '../../../../../shared/workspace-session/workspace-session-state-types'
 import { projectHydratedBrowserSession } from '../../slices/browser/hydration/browser-hydration-state'
 import { buildHydratedEditorSessionState } from '../../slices/editor/hydration/hydrated-editor-session-state'
@@ -119,16 +120,21 @@ function stampExecutionHosts(
   )
 }
 
-/** A group shows the view's tab, else its first, as the startup reconcile picks today. */
+/** Only a view without a selection declaration receives the startup fallback. */
 function withShownTabs(
-  groupsByWorktree: AppState['groupsByWorktree']
+  groupsByWorktree: AppState['groupsByWorktree'],
+  tabsByWorktree: AppState['unifiedTabsByWorktree'],
+  view: DesktopLayoutView
 ): AppState['groupsByWorktree'] {
   return Object.fromEntries(
     Object.entries(groupsByWorktree).map(([key, groups]) => [
       key,
       groups.map((group) =>
-        group.activeTabId === null && group.tabOrder.length > 0
-          ? { ...group, activeTabId: group.tabOrder[0]! }
+        group.activeTabId === null && view.groups[key]?.[group.id]?.activeTabId === undefined
+          ? {
+              ...group,
+              activeTabId: visibleTabOrder(group.tabOrder, tabsByWorktree[key] ?? [])[0] ?? null
+            }
           : group
       )
     ])
@@ -291,7 +297,11 @@ export function buildLayoutFrameSlices({
     terminalLayoutsByTabId,
     activeTabIdByWorktree,
     ...editorTabs,
-    groupsByWorktree: withShownTabs(editorTabs.groupsByWorktree),
+    groupsByWorktree: withShownTabs(
+      editorTabs.groupsByWorktree,
+      editorTabs.unifiedTabsByWorktree,
+      view
+    ),
     openFiles,
     editorDrafts: editor.state.editorDrafts,
     markdownFrontmatterVisible: editor.state.markdownFrontmatterVisible,

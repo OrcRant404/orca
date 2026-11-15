@@ -2839,6 +2839,22 @@
     },
     "usePrTextAction": {
       "updateFailed": "Failed to update pull request."
+    },
+    "hidden": {
+      "allHidden": "All tabs are hidden",
+      "chooseTab": "Choose a tab to continue",
+      "title": "Hidden tabs",
+      "search": "Search hidden tabs…",
+      "hint": "Open a tab, or unhide it without switching.",
+      "unhideAll": "Unhide all",
+      "unhide": "Unhide",
+      "empty": "No hidden tabs",
+      "unsupported": "Update the execution host to manage hidden tabs.",
+      "waiting": "Waiting for the host…",
+      "missing": "Tab no longer exists",
+      "timeout": "The host has not confirmed the tab change. Try again.",
+      "disconnected": "Reconnect to open this tab",
+      "hideTab": "Hide tab"
     }
   },
   "chat": {
@@ -3283,13 +3299,34 @@
       "taskFromCoordinator": "Task from coordinator",
       "messageFromCoordinator": "Message from coordinator",
       "updateFromWorker": "Update from worker",
-      "messageFrom": "Message from"
+      "messageFrom": "Message from",
+      "launching": "Launching"
     },
     "fork": {
       "busy": "Another chat or terminal is opening. Wait, then fork the {{agent}} chat again.",
       "unconfirmed": "{{agent}} couldn't confirm the fork. It may have opened anyway; check Session History before forking again.",
       "failed": "{{agent}} couldn't fork this chat. {{detail}}",
-      "unsupported": "This host runs an older Orca. Update Orca on the host, then try again."
+      "unsupported": "This host runs an older Orca. Update Orca on the host, then try again.",
+      "contextUnavailable": "This turn could not be prepared. Reopen the chat and try again.",
+      "contextFailed": "Could not prepare this turn. Try again.",
+      "resultUnconfirmed": "The fork result could not be confirmed. Check Session History before retrying.",
+      "title": "Fork Chat from This Turn",
+      "description": "Start an independent chat with context through this turn. Later messages are excluded. Your original chat stays unchanged.",
+      "agent": "Agent",
+      "model": "Model",
+      "defaultModel": "Default model",
+      "context": "Context",
+      "throughTurn": "Conversation through this turn",
+      "recent": "Recent context through this turn",
+      "filesUnchanged": "Workspace files stay in their current state. The new agent waits for your next instruction.",
+      "create": "Create Fork",
+      "preparing": "Preparing context…",
+      "chooseAgent": "Choose Agent",
+      "chooseModel": "Choose Model",
+      "full": "Conversation through this turn (Recommended)",
+      "contextNotSent": "The fork opened, but its context was not sent. Check Session History before retrying.",
+      "contextUnconfirmed": "The fork opened, but its context delivery could not be confirmed. Check Session History before retrying.",
+      "openFailed": "The fork could not be opened. Check Session History before retrying."
     },
     "hostOutage": {
       "reconnecting": "{{hostName}} is reconnecting…",

@@ -2,10 +2,10 @@
 
 import { requestBrowserFocus } from '@/components/browser-pane/host-guest/browser-focus'
 import { translate } from '@/i18n/i18n'
-import { activateBrowserPagePaletteResult } from '@/lib/browser/palette/browser-page-palette-activation'
+import { unhideAndActivateBrowserPagePaletteResult } from '@/lib/browser/palette/browser-page-palette-activation'
 import { focusTerminalTabSurface } from '@/lib/focus-terminal-tab-surface'
-import { activateSimulatorTabPaletteResult } from '@/lib/simulator-tab-palette-activation'
-import { activateWorkspaceTabPaletteResult } from '@/lib/workspace/search/tabs/workspace-tab-palette-activation'
+import { unhideAndActivateSimulatorTabPaletteResult } from '@/lib/simulator-tab-palette-activation'
+import { unhideAndActivateWorkspaceTabPaletteResult } from '@/lib/workspace/search/tabs/workspace-tab-palette-activation'
 import type { OpenTabSearchResult } from './open-tab-search'
 
 export type OpenTabSelectionOutcome =
@@ -27,9 +27,11 @@ function failed(reason: string, staleMessage: string): OpenTabSelectionOutcome {
   }
 }
 
-export function activateOpenTabSearchResult(result: OpenTabSearchResult): OpenTabSelectionOutcome {
+export async function activateOpenTabSearchResult(
+  result: OpenTabSearchResult
+): Promise<OpenTabSelectionOutcome> {
   if (result.source === 'browser') {
-    const activation = activateBrowserPagePaletteResult({
+    const activation = await unhideAndActivateBrowserPagePaletteResult({
       executionHostId: result.executionHostId,
       pageId: result.pageId,
       workspaceId: result.workspaceId,
@@ -55,7 +57,7 @@ export function activateOpenTabSearchResult(result: OpenTabSearchResult): OpenTa
   }
 
   if (result.source === 'simulator') {
-    const activation = activateSimulatorTabPaletteResult({
+    const activation = await unhideAndActivateSimulatorTabPaletteResult({
       executionHostId: result.executionHostId,
       tabId: result.tabId,
       worktreeId: result.worktreeId
@@ -75,7 +77,7 @@ export function activateOpenTabSearchResult(result: OpenTabSearchResult): OpenTa
     return { status: 'activated', focus: null }
   }
 
-  const activation = activateWorkspaceTabPaletteResult({
+  const activation = await unhideAndActivateWorkspaceTabPaletteResult({
     executionHostId: result.executionHostId,
     contentType: result.contentType,
     entityId: result.entityId,

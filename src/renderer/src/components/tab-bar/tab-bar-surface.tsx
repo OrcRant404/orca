@@ -1,4 +1,5 @@
 import React from 'react'
+import { HiddenTabsButton } from '@/components/hidden-tabs/HiddenTabsButton'
 import { SortableContext } from '@dnd-kit/sortable'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { translate } from '@/i18n/i18n'
@@ -295,6 +296,9 @@ export function renderTabBarSurface(
           ) : null}
         </DropdownMenuContent>
       </DropdownMenu>
+      <div className="ml-auto flex shrink-0">
+        <HiddenTabsButton worktreeId={worktreeId} />
+      </div>
     </div>
   )
 }

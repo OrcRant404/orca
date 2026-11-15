@@ -71,15 +71,23 @@ function seed(folder: string, files: Record<string, string>): string {
   return folder
 }
 
-function legacyFor(state: string, sessionId: string, files: Record<string, string>): string {
+async function legacyFor(
+  state: string,
+  sessionId: string,
+  files: Record<string, string>
+): Promise<string> {
   return seed(
-    join(legacyRootOf(state), basename(nativeChatScratchFolderFor(state, sessionId))),
+    join(legacyRootOf(state), basename(await nativeChatScratchFolderFor(state, sessionId))),
     files
   )
 }
 
-function currentFor(state: string, sessionId: string, files: Record<string, string>): string {
-  return seed(nativeChatScratchFolderFor(state, sessionId), files)
+async function currentFor(
+  state: string,
+  sessionId: string,
+  files: Record<string, string>
+): Promise<string> {
+  return seed(await nativeChatScratchFolderFor(state, sessionId), files)
 }
 
 function logger(): StructuredAgentSessionLogger & {
@@ -91,11 +99,11 @@ function logger(): StructuredAgentSessionLogger & {
 describe('moving pre-rename chat visuals folders', () => {
   it('preserves saved filenames and keeps conflicting copies inside the chat folder', async () => {
     const state = stateDirectory()
-    legacyFor(state, 'chat-both', {
+    await legacyFor(state, 'chat-both', {
       'chart.html': '<p>older</p>',
       'chart.previous.html': '<p>separate saved visual</p>'
     })
-    const both = currentFor(state, 'chat-both', { 'chart.html': '<p>current</p>' })
+    const both = await currentFor(state, 'chat-both', { 'chart.html': '<p>current</p>' })
 
     await migrateLegacyNativeChatVisualsFolders(state, logger())
 
@@ -119,10 +127,10 @@ describe('moving pre-rename chat visuals folders', () => {
 
   it('preserves nested leftovers without replacing an existing recovery folder', async () => {
     const state = stateDirectory()
-    const legacy = legacyFor(state, 'chat-both', { 'chart.html': '<p>older</p>' })
+    const legacy = await legacyFor(state, 'chat-both', { 'chart.html': '<p>older</p>' })
     mkdirSync(join(legacy, 'drafts'))
     writeFileSync(join(legacy, 'drafts', 'chart.html'), '<p>draft</p>')
-    const both = currentFor(state, 'chat-both', { 'chart.html': '<p>current</p>' })
+    const both = await currentFor(state, 'chat-both', { 'chart.html': '<p>current</p>' })
     const prior = join(both, '.legacy-visuals-prior')
     mkdirSync(prior)
     writeFileSync(join(prior, 'notes.txt'), 'already recovered')
@@ -144,11 +152,11 @@ describe('moving pre-rename chat visuals folders', () => {
     'keeps failed work retryable after a %s failure',
     async (operation) => {
       const state = stateDirectory()
-      let legacy = legacyFor(state, 'chat-both', {
+      let legacy = await legacyFor(state, 'chat-both', {
         'chart.html': '<p>older</p>',
         'other.html': '<p>saved visual</p>'
       })
-      const both = currentFor(state, 'chat-both', { 'chart.html': '<p>current</p>' })
+      const both = await currentFor(state, 'chat-both', { 'chart.html': '<p>current</p>' })
       renameSync(legacy, `${both}.expired`)
       legacy = `${both}.expired`
       fsFaults.operation = operation
@@ -186,12 +194,12 @@ describe('moving pre-rename chat visuals folders', () => {
     const state = stateDirectory()
     const elsewhere = join(state, 'elsewhere')
     mkdirSync(elsewhere)
-    legacyFor(state, 'chat-linked', { 'chart.html': '<p>chart</p>' })
-    mkdirSync(nativeChatScratchRootFor(state))
-    symlinkSync(elsewhere, nativeChatScratchFolderFor(state, 'chat-linked'))
+    await legacyFor(state, 'chat-linked', { 'chart.html': '<p>chart</p>' })
+    mkdirSync(await nativeChatScratchRootFor(state))
+    symlinkSync(elsewhere, await nativeChatScratchFolderFor(state, 'chat-linked'))
     const linkedRoot = stateDirectory()
-    legacyFor(linkedRoot, 'chat-any', { 'chart.html': '<p>chart</p>' })
-    symlinkSync(elsewhere, nativeChatScratchRootFor(linkedRoot))
+    await legacyFor(linkedRoot, 'chat-any', { 'chart.html': '<p>chart</p>' })
+    symlinkSync(elsewhere, await nativeChatScratchRootFor(linkedRoot))
 
     const log = logger()
     await migrateLegacyNativeChatVisualsFolders(state, log)
@@ -202,7 +210,7 @@ describe('moving pre-rename chat visuals folders', () => {
       existsSync(
         join(
           legacyRootOf(state),
-          basename(nativeChatScratchFolderFor(state, 'chat-linked')),
+          basename(await nativeChatScratchFolderFor(state, 'chat-linked')),
           'chart.html'
         )
       )
@@ -211,7 +219,7 @@ describe('moving pre-rename chat visuals folders', () => {
       existsSync(
         join(
           legacyRootOf(linkedRoot),
-          basename(nativeChatScratchFolderFor(linkedRoot, 'chat-any')),
+          basename(await nativeChatScratchFolderFor(linkedRoot, 'chat-any')),
           'chart.html'
         )
       )

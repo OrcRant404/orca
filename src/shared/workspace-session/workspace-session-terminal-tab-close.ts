@@ -1,3 +1,4 @@
+import { visibleTabOrder } from '../workspace-layout/tab-visibility'
 import type { Tab, TabGroup, TabGroupLayoutNode, WorkspaceVisibleTabType } from '../tab-types'
 import type { WorkspaceSessionState } from './workspace-session-state-types'
 
@@ -210,12 +211,13 @@ export function closeTerminalTabInWorkspaceSession(
   const nextGroups = (session.tabGroups?.[worktreeId] ?? [])
     .map((group) => {
       const tabOrder = group.tabOrder.filter((id) => !closedVisibleIds.has(id))
-      const remainingIds = new Set(tabOrder)
+      const visibleOrder = visibleTabOrder(tabOrder, nextTabs)
+      const remainingIds = new Set(visibleOrder)
       const activeTabId = closedVisibleIds.has(group.activeTabId ?? '')
-        ? pickNextActiveTabAfterClose(group, closedVisibleIds, tabOrder, remainingIds)
+        ? pickNextActiveTabAfterClose(group, closedVisibleIds, visibleOrder, remainingIds)
         : group.activeTabId && remainingIds.has(group.activeTabId)
           ? group.activeTabId
-          : (tabOrder[0] ?? null)
+          : (visibleOrder[0] ?? null)
       return {
         ...group,
         tabOrder,

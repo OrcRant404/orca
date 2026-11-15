@@ -195,6 +195,7 @@ export function setTabProps(
   const props = {
     ...(command.color !== undefined ? { color: command.color } : {}),
     ...(command.isPinned !== undefined ? { isPinned: command.isPinned } : {}),
+    ...(command.isHidden !== undefined ? { isHidden: command.isHidden } : {}),
     ...(command.viewMode !== undefined ? { viewMode: command.viewMode } : {})
   }
   const next: LayoutTab =

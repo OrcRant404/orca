@@ -24,6 +24,7 @@ export type MobileBrowserTab = Pick<
   | 'canGoBack'
   | 'canGoForward'
   | 'isActive'
+  | 'isHidden'
 >
 
 export type MobileSessionTabType = NonNullable<RuntimeMobileSessionTabsResult['activeTabType']>
@@ -36,7 +37,7 @@ export type MobileTerminalTabPhoneFields = {
 
 // The phone reads a subset of each host tab; fields older hosts omit are optional here.
 export type MobileSessionTab =
-  | (Pick<RuntimeMobileSessionTerminalTab, 'type' | 'id' | 'title' | 'isActive'> &
+  | (Pick<RuntimeMobileSessionTerminalTab, 'type' | 'id' | 'title' | 'isActive' | 'isHidden'> &
       Partial<
         Pick<
           RuntimeMobileSessionTerminalTab,
@@ -54,7 +55,7 @@ export type MobileSessionTab =
       } & MobileTerminalTabPhoneFields)
   | (Pick<
       RuntimeMobileSessionAgentTab,
-      'type' | 'id' | 'title' | 'sessionId' | 'agent' | 'isActive' | 'taskAssigned'
+      'type' | 'id' | 'title' | 'sessionId' | 'agent' | 'isActive' | 'isHidden' | 'taskAssigned'
     > & {
       chatStatus?: RuntimeMobileSessionAgentTabStatus & MirroredEvidenceReceipt
     })
@@ -67,6 +68,7 @@ export type MobileSessionTab =
       | 'relativePath'
       | 'isDirty'
       | 'isActive'
+      | 'isHidden'
       | 'documentVersion'
     >
   | (Pick<
@@ -80,6 +82,7 @@ export type MobileSessionTab =
       | 'oldPath'
       | 'isDirty'
       | 'isActive'
+      | 'isHidden'
     > & {
       language?: string
       // The phone also opens branch and commit diffs, which the host never publishes.
@@ -97,6 +100,8 @@ export type SessionTabsResult = Pick<
   | 'activeTabType'
   | 'navigationIntent'
 > &
-  Partial<Pick<RuntimeMobileSessionTabsResult, 'publicationEpoch'>> & {
+  Partial<
+    Pick<RuntimeMobileSessionTabsResult, 'publicationEpoch' | 'activeGroupId' | 'tabGroups'>
+  > & {
     tabs: MobileSessionTab[]
   }

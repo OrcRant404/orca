@@ -1,3 +1,7 @@
+import {
+  visibleActiveTabId,
+  visibleTabOrder
+} from '../../../../../shared/workspace-layout/tab-visibility'
 import { structuredLaunchSlotIds } from '@/lib/agent-session/launch/structured-agent-session-launch-persistence'
 import type { AppState } from '../../types'
 import type { Tab } from '../../../../../shared/tab-types'
@@ -73,6 +77,7 @@ export function projectWorktreeTabModelReconciliation(
             ...(tab.aiVaultTitle ? { aiVaultTitle: tab.aiVaultTitle } : {}),
             customLabel: tab.customTitle,
             color: tab.color,
+            isHidden: tab.isHidden,
             sortOrder: tab.sortOrder,
             createdAt: tab.createdAt
           }))
@@ -127,10 +132,13 @@ export function projectWorktreeTabModelReconciliation(
     const slots = structuredLaunchSlotIds(worktreeId, group.id)
     const tabOrder = group.tabOrder.filter((tabId) => validTabIds.has(tabId) || slots.has(tabId))
     const realOrder = tabOrder.filter((id) => validTabIds.has(id))
-    const activeTabId =
-      group.activeTabId && validTabIds.has(group.activeTabId)
-        ? group.activeTabId
-        : (realOrder[0] ?? null)
+    const selected =
+      group.activeTabId && validTabIds.has(group.activeTabId) ? group.activeTabId : null
+    const activeTabId = selected
+      ? visibleActiveTabId(tabOrder, group.recentTabIds, selected, validTabs)
+      : group.tabOrder.some((id) => validTabs.some((tab) => tab.id === id && tab.isHidden))
+        ? null
+        : (visibleTabOrder(realOrder, validTabs)[0] ?? null)
     const tabOrderUnchanged =
       tabOrder.length === group.tabOrder.length &&
       tabOrder.every((tabId, index) => tabId === group.tabOrder[index])

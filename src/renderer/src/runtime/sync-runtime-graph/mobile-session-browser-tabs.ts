@@ -38,6 +38,7 @@ export function buildMobileBrowserTab(
       : null,
     color: unifiedTab?.color ?? null,
     isPinned: unifiedTab?.isPinned === true,
+    ...(unifiedTab?.isHidden !== undefined ? { isHidden: unifiedTab.isHidden } : {}),
     isActive: unifiedTabId
       ? isUnifiedTabActiveInActiveGroup(inputs, unifiedTabId)
       : inputs.activeBrowserWorkspaceId === workspace.id,

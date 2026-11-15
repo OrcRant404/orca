@@ -4,7 +4,10 @@ import '../../files/session-documents/mobile-markdown-tab-reply-schema'
 import '../../worktree/session-worktree-record-reply-schema'
 import '../../terminal/terminal-reply-schema'
 import { sessionCreatedTerminalTabSchema } from '../../terminal/session/mobile-session-terminal-reply-schema'
-import { sessionTabCloseReplySchema } from './mobile-session-tab-write-reply-schema'
+import {
+  sessionTabCloseReplySchema,
+  sessionTabHiddenReplySchema
+} from './mobile-session-tab-write-reply-schema'
 import { sessionWriteUnreadReplySchema } from '../../transport/rpc/rpc-uninterpreted-reply-schemas'
 import '../../terminal/quick-commands/mobile-quick-command-operations'
 
@@ -36,5 +39,15 @@ export const sessionTabActivate = bindDeferredRpcOperation(
     acceptance: 'success-result-or-skip',
     barrier: 'after-caller-barrier',
     read: rpcResultVariant('session-tab-activated', sessionWriteUnreadReplySchema)
+  })
+)
+
+export const sessionTabSetHidden = bindDeferredRpcOperation(
+  defineRpcOperation({
+    name: 'session.tabs-set-hidden',
+    method: 'session.tabs.setTabProps',
+    acceptance: 'require-result-or-throw-message',
+    barrier: 'after-caller-barrier',
+    read: rpcResultVariant('session-tab-hidden-forwarded', sessionTabHiddenReplySchema)
   })
 )

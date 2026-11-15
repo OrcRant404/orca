@@ -6,7 +6,7 @@ const FIXTURE_TIMEOUT_MS = 60_000
 export function createFixturePageRunner(baseUrl, browserPromise) {
   const workers = new Map()
   let sourceRevision = 0
-  let cachedList = null
+  const cachedLists = new Map()
   let queue = Promise.resolve()
 
   function serialize(task) {
@@ -64,13 +64,19 @@ export function createFixturePageRunner(baseUrl, browserPromise) {
     )
   }
 
-  function listFixtures() {
+  function listFixtures(componentId) {
     return serialize(async () => {
+      const cacheKey = componentId ?? ''
+      const cachedList = cachedLists.get(cacheKey)
       if (cachedList?.revision !== sourceRevision) {
         const revision = sourceRevision
         const { page } = await readyWorker(1)
-        const fixtures = await page.evaluate(() => window.__orcaComponentFixtureHost.list())
-        cachedList = { revision, fixtures }
+        const fixtures = await page.evaluate(
+          (id) => window.__orcaComponentFixtureHost.list(id),
+          componentId
+        )
+        cachedLists.set(cacheKey, { revision, fixtures })
+        return fixtures
       }
       return cachedList.fixtures
     })
