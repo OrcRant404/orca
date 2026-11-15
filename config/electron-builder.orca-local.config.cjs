@@ -8,11 +8,22 @@ module.exports = {
   protocols: [],
   mac: {
     ...upstream.mac,
+    extendInfo: {
+      ...upstream.mac.extendInfo,
+      CFBundleDisplayName: 'Orca',
+      CFBundleName: 'Orca Local',
+      CFBundleExecutable: 'Orca'
+    },
     extraResources: upstream.mac.extraResources.filter(
       (resource) => !resource.to?.startsWith('orcad-template')
     )
   },
-  extraMetadata: { ...upstream.extraMetadata, name: 'orca-local', productName: 'Orca Local' },
+  extraMetadata: {
+    ...upstream.extraMetadata,
+    name: 'orca-local',
+    productName: 'Orca Local',
+    orcaManualUpdates: true
+  },
   directories: { ...upstream.directories, output: 'dist/orca-local' },
   publish: null
 }

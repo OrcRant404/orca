@@ -26,6 +26,7 @@ type AutoUpdaterMock = {
 
 type AppMock = {
   isPackaged: boolean
+  getAppPath: Mock<() => string>
   getVersion: Mock<() => string>
   on: Mock<(event: string, handler: (...args: unknown[]) => void) => AppMock>
   prependListener: Mock<(event: string, handler: (...args: unknown[]) => void) => AppMock>
@@ -180,15 +181,14 @@ export function createUpdaterMocks(): UpdaterMocks {
 
   const appMock: AppMock = {
     isPackaged: true,
+    getAppPath: vi.fn(() => process.cwd()),
     getVersion: vi.fn(() => '1.0.51'),
     on: appOn,
     prependListener: appPrependListener,
     emit: appEmit,
     quit: vi.fn()
   }
-  const browserWindowMock = {
-    getAllWindows: vi.fn(() => [])
-  }
+  const browserWindowMock = { getAllWindows: vi.fn(() => []) }
   const nativeUpdaterMock = {
     on: vi.fn()
   }
@@ -261,8 +261,8 @@ export function createUpdaterMocks(): UpdaterMocks {
     nativeUpdaterMock.on.mockReset()
     browserWindowMock.getAllWindows.mockReset()
     browserWindowMock.getAllWindows.mockReturnValue([])
-    appMock.getVersion.mockReset()
-    appMock.getVersion.mockReturnValue('1.0.51')
+    appMock.getVersion.mockReset().mockReturnValue('1.0.51')
+    appMock.getAppPath.mockReset().mockReturnValue(process.cwd())
     appMock.quit.mockReset()
     appMock.isPackaged = true
     killAllPtyMock.mockReset()
