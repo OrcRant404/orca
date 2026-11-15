@@ -299,6 +299,7 @@ export function projectRuntimeMobileSessionTabs(
       ...(tab.parentLayout ? { parentLayout: tab.parentLayout } : {}),
       ...(tab.startupCwd ? { startupCwd: tab.startupCwd } : {}),
       ...(tab.color != null ? { color: tab.color } : {}),
+      ...(tab.isHidden !== undefined ? { isHidden: tab.isHidden } : {}),
       ...(tab.isPinned ? { isPinned: true } : {}),
       ...(tab.viewMode ? { viewMode: tab.viewMode } : {}),
       ...(tab.launchDraft ? { launchDraft: tab.launchDraft } : {}),

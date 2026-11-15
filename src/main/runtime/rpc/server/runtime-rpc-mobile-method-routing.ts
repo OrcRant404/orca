@@ -204,6 +204,7 @@ export const EXECUTION_HOST_METHODS = [
   'session.tabs.list',
   'session.tabs.listAll',
   'session.tabs.move',
+  'session.tabs.setTabProps',
   'session.tabs.subscribe',
   'session.tabs.subscribeAll',
   'session.tabs.unsubscribe',

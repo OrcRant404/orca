@@ -92,7 +92,8 @@ export function tabEqual(a: Tab, b: Tab): boolean {
     a.sortOrder === b.sortOrder &&
     a.createdAt === b.createdAt &&
     a.isPreview === b.isPreview &&
-    a.isPinned === b.isPinned
+    a.isPinned === b.isPinned &&
+    (a.isHidden ?? false) === (b.isHidden ?? false)
   )
 }
 

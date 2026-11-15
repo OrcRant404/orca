@@ -7,25 +7,26 @@ export type FloatingWorkspacePanelVisibilityState = Pick<
   'settings' | 'floatingWorkspacePanelOpen'
 >
 
-type FloatingVisibleTabCountState = Pick<
+type FloatingTabInventoryState = Pick<
   AppState,
   'browserTabsByWorktree' | 'openFiles' | 'tabsByWorktree' | 'unifiedTabsByWorktree'
 >
 export type EmptyFloatingWorkspacePanelState = FloatingWorkspacePanelVisibilityState &
-  FloatingVisibleTabCountState
-type FloatingVisibleTabCountCache = {
+  FloatingTabInventoryState
+type FloatingTabCountCache = {
   terminalTabs: NonNullable<AppState['tabsByWorktree'][string]>
   browserTabs: NonNullable<AppState['browserTabsByWorktree'][string]>
   openFiles: AppState['openFiles']
   unifiedTabs: NonNullable<AppState['unifiedTabsByWorktree'][string]>
-  count: number
+  visibleCount: number
+  hasBackedTabs: boolean
 }
 
 const EMPTY_TABS: TerminalTab[] = []
 const EMPTY_BROWSER_TABS: NonNullable<AppState['browserTabsByWorktree'][string]> = []
 const EMPTY_UNIFIED_TABS: NonNullable<AppState['unifiedTabsByWorktree'][string]> = []
 
-let floatingVisibleTabCountCache: FloatingVisibleTabCountCache | null = null
+let floatingTabCountCache: FloatingTabCountCache | null = null
 
 /** Panel is visible only with feature enabled and panel open; closed panels are aria-hidden. */
 export function selectFloatingWorkspacePanelVisible(
@@ -34,13 +35,13 @@ export function selectFloatingWorkspacePanelVisible(
   return state.settings?.floatingTerminalEnabled === true && state.floatingWorkspacePanelOpen
 }
 
-export function selectFloatingVisibleTabCount(state: FloatingVisibleTabCountState): number {
+function selectFloatingTabCounts(state: FloatingTabInventoryState): FloatingTabCountCache {
   const terminalTabs = state.tabsByWorktree[FLOATING_TERMINAL_WORKTREE_ID] ?? EMPTY_TABS
   const browserTabs =
     state.browserTabsByWorktree[FLOATING_TERMINAL_WORKTREE_ID] ?? EMPTY_BROWSER_TABS
   const unifiedTabs =
     state.unifiedTabsByWorktree[FLOATING_TERMINAL_WORKTREE_ID] ?? EMPTY_UNIFIED_TABS
-  const cached = floatingVisibleTabCountCache
+  const cached = floatingTabCountCache
   if (
     cached &&
     cached.terminalTabs === terminalTabs &&
@@ -48,7 +49,7 @@ export function selectFloatingVisibleTabCount(state: FloatingVisibleTabCountStat
     cached.openFiles === state.openFiles &&
     cached.unifiedTabs === unifiedTabs
   ) {
-    return cached.count
+    return cached
   }
 
   const terminalIds = new Set<string>()
@@ -66,32 +67,46 @@ export function selectFloatingVisibleTabCount(state: FloatingVisibleTabCountStat
     }
   }
 
-  let count = 0
+  let visibleCount = 0
+  let hasBackedTabs = false
   for (const tab of unifiedTabs) {
-    if (tab.contentType === 'terminal') {
-      count += terminalIds.has(tab.entityId) ? 1 : 0
-    } else if (tab.contentType === 'browser') {
-      count += browserIds.has(tab.entityId) ? 1 : 0
-    } else if (tab.contentType === 'simulator' || tab.contentType === 'agent-session') {
-      // Simulator/structured-chat tabs have no backing records; unified tabs are the visible floating items.
-      count += 1
-    } else {
-      count += editorIds.has(tab.entityId) ? 1 : 0
+    const backed =
+      tab.contentType === 'terminal'
+        ? terminalIds.has(tab.entityId)
+        : tab.contentType === 'browser'
+          ? browserIds.has(tab.entityId)
+          : tab.contentType === 'simulator' || tab.contentType === 'agent-session'
+            ? true
+            : editorIds.has(tab.entityId)
+    if (backed) {
+      hasBackedTabs = true
+      if (!tab.isHidden) {
+        visibleCount += 1
+      }
     }
   }
 
-  floatingVisibleTabCountCache = {
+  floatingTabCountCache = {
     terminalTabs,
     browserTabs,
     openFiles: state.openFiles,
     unifiedTabs,
-    count
+    visibleCount,
+    hasBackedTabs
   }
-  return count
+  return floatingTabCountCache
+}
+
+export function selectFloatingVisibleTabCount(state: FloatingTabInventoryState): number {
+  return selectFloatingTabCounts(state).visibleCount
+}
+
+export function selectFloatingHasBackedTabs(state: FloatingTabInventoryState): boolean {
+  return selectFloatingTabCounts(state).hasBackedTabs
 }
 
 export function resetFloatingVisibleTabCountSelectorCacheForTest(): void {
-  floatingVisibleTabCountCache = null
+  floatingTabCountCache = null
 }
 
 export function selectEmptyFloatingWorkspacePanelVisible(

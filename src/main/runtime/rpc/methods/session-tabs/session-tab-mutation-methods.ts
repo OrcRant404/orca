@@ -1,3 +1,4 @@
+import { unhideSessionTabForActivation } from './session-tab-visible-activation'
 import { resolveRuntimeNavigationTarget } from '../../../../../shared/runtime-navigation'
 import { resolveChatTabActivation } from '../../../agent-session/agent-session-tab-identity'
 import { commitLeafMoveAndRekey } from '../../../../ipc/pty/ipc/leaf-move'
@@ -30,6 +31,18 @@ export const SESSION_TAB_MUTATION_METHODS = [
       if (clientKind) {
         const visible = projectSessionTabsForClient(inventory, clientKind, clientCapabilities)
         assertProjectedSessionTabVisible(visible, tabId)
+      }
+      const hidden = inventory.tabs.find(
+        (tab) =>
+          tab.id === tabId ||
+          (tab.type === 'terminal' && tab.parentTabId === tabId) ||
+          (tab.type === 'browser' && tab.browserWorkspaceId === tabId)
+      )
+      if (hidden?.isHidden) {
+        if (params.intent === 'automatic') {
+          throw new Error('tab_hidden')
+        }
+        await unhideSessionTabForActivation(runtime, inventory, hidden.id)
       }
       const result = await runtime.activateMobileSessionTab(params.worktree, tabId, params.leafId, {
         includeAgentSenders: clientKind !== 'mobile',
@@ -155,6 +168,7 @@ export const SESSION_TAB_MUTATION_METHODS = [
         tabId: params.tabId,
         ...(params.color !== undefined ? { color: params.color } : {}),
         ...(params.isPinned !== undefined ? { isPinned: params.isPinned } : {}),
+        ...(params.isHidden !== undefined ? { isHidden: params.isHidden } : {}),
         ...(params.viewMode !== undefined ? { viewMode: params.viewMode } : {}),
         ...(params.customTitle !== undefined ? { customTitle: params.customTitle } : {})
       })

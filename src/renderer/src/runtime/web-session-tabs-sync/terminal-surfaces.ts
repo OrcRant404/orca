@@ -152,6 +152,7 @@ export function buildMirroredAgentTabs(
         color: tab.color !== undefined ? tab.color : (existing?.color ?? null),
         sortOrder: sortOffset + index,
         createdAt: existing?.createdAt ?? now + sortOffset + index,
+        isHidden: tab.isHidden === true,
         isPinned: tab.isPinned !== undefined ? tab.isPinned : existing?.isPinned === true
       }
     }

@@ -6,6 +6,7 @@ import {
   getTerminalQuickCommandHostPromptMaxLength
 } from '@/lib/terminal-quick-command-host-prompt-limit'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { Separator } from '@/components/ui/separator'
 import {
   createTerminalQuickCommandDraft,
   TerminalQuickCommandDialog
@@ -169,6 +170,7 @@ export function TabBarQuickCommandsButton({
   if (!hasAnyCommands && hosts.length === 1 && !remoteHostPending) {
     return (
       <>
+        <Separator orientation="vertical" className="my-auto h-4" />
         <Tooltip>
           <TooltipTrigger asChild>
             <button
@@ -209,6 +211,7 @@ export function TabBarQuickCommandsButton({
 
   return (
     <>
+      <Separator orientation="vertical" className="my-auto h-4" />
       <TabBarQuickCommandsMenu
         isFocused={isFocused}
         repoCommands={repoCommands}

@@ -23,7 +23,7 @@ export function MobileSessionSurface({ controller }: { controller: MobileSession
   const server = useContext(WorkspaceServerContext)
   const layout = useResponsiveLayout()
   const sideRail = useShellSideRail()
-  const hasTabs = controller.visibleTabs.length > 0
+  const hasTabs = controller.sessionTabs.length > 0 || controller.hiddenTabsSupported === true
   const besideTabs = (layout.isLandscapePhone || sideRail) && hasTabs
   const titleVisible =
     !sideRail || !hasTabs || controller.showConnectionRetry || controller.connectionEscalated

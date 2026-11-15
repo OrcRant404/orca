@@ -1,46 +1,20 @@
+import { followHiddenSnapshotSelection } from './hidden-session-selection'
+import { withSessionTabProps } from './session-tab-properties-state'
 import { renameStructuredSessionTab, type SessionTabProps } from './structured-session-tab-rename'
 import { OrcaRuntimeWithHeadlessPaneMoveToNewTab } from './headless-pane-move-to-new-tab'
-import type { WorkspaceSessionState } from '../../../shared/workspace-session/workspace-session-state-types'
 import type { RuntimeMobileSessionTabsSnapshot } from '../../../shared/runtime-session-contracts'
 import type { RuntimeMobileSessionSnapshotTab } from '../../../shared/runtime-mobile-session-tab-contracts'
-import type {
-  TerminalLayoutSnapshot,
-  TerminalPaneLayoutNode
-} from '../../../shared/workspace-layout/terminal-tab-types'
+import type { TerminalLayoutSnapshot } from '../../../shared/workspace-layout/terminal-tab-types'
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../shared/layout-owner-switch'
 import { cloneTerminalLayoutSnapshot } from '../terminal/surface/mobile-session-layout-projection'
-import {
-  sameStringRecord,
-  terminalLayoutNodeEqual
-} from '../../../shared/workspace-layout/terminal-layout-equality'
-
-type HeadlessPaneLayoutEdit = {
-  tabId: string
-  root: TerminalPaneLayoutNode | null
-  expandedLeafId: string | null
-  chatLeafId?: string | null
-  titlesByLeafId?: Record<string, string>
-}
-
-// Remounts resend unchanged layouts; avoid persisting and broadcasting them to every client.
-function paneLayoutEditIsNoOp(
-  layout: Pick<TerminalLayoutSnapshot, 'root' | 'expandedLeafId' | 'chatLeafId' | 'titlesByLeafId'>,
-  edit: HeadlessPaneLayoutEdit
-): boolean {
-  return (
-    terminalLayoutNodeEqual(edit.root ?? layout.root, layout.root) &&
-    (layout.expandedLeafId ?? null) === edit.expandedLeafId &&
-    (edit.chatLeafId === undefined || (layout.chatLeafId ?? null) === (edit.chatLeafId ?? null)) &&
-    (!edit.titlesByLeafId || sameStringRecord(layout.titlesByLeafId, edit.titlesByLeafId))
-  )
-}
+import { paneLayoutEditIsNoOp, type HeadlessPaneLayoutEdit } from './headless-pane-layout-edit'
 
 export abstract class RuntimeHeadlessTabProperties extends OrcaRuntimeWithHeadlessPaneMoveToNewTab {
   // Remote tab color/pin need persistence and live publication or the next snapshot reverts them.
   async setMobileSessionTabProps(
     worktreeSelector: string,
     args: SessionTabProps
-  ): Promise<{ updated: true }> {
+  ): Promise<{ updated: true; forwarded?: boolean }> {
     const explicitWorktreeId = this.getExplicitSessionWorktreeIdSelector(worktreeSelector)
     const worktreeId =
       explicitWorktreeId ?? (await this.resolveWorkspaceSelector(worktreeSelector)).id
@@ -51,7 +25,7 @@ export abstract class RuntimeHeadlessTabProperties extends OrcaRuntimeWithHeadle
       ? (this.resolveMobileSessionHostTabId(snapshot, args.tabId) ?? args.tabId)
       : args.tabId
     if (ORCA_LAYOUT_OWNER_IS_MAIN && (await this.setMainTabProps(worktreeId, hostTabId, args))) {
-      return { updated: true }
+      return { updated: true, ...(args.isHidden !== undefined ? { forwarded: false } : {}) }
     }
     const authoritativeWindow = this.getAvailableAuthoritativeWindow()
     if (
@@ -64,6 +38,40 @@ export abstract class RuntimeHeadlessTabProperties extends OrcaRuntimeWithHeadle
         ),
         { code: 'capability_unsupported' }
       )
+    }
+    if (args.isHidden !== undefined && authoritativeWindow) {
+      if (args.customTitle !== undefined) {
+        throw Object.assign(
+          new Error(
+            'Combined title and visibility edits are unavailable while a desktop window owns the layout'
+          ),
+          { code: 'capability_unsupported' }
+        )
+      }
+      if (!snapshot || !this.resolveMobileSessionHostTabId(snapshot, args.tabId)) {
+        throw new Error('tab_not_found')
+      }
+      if (!this.notifier?.setSessionTabHidden?.(worktreeId, hostTabId, args.isHidden)) {
+        throw Object.assign(new Error('The attached desktop cannot apply hidden tabs'), {
+          code: 'capability_unsupported'
+        })
+      }
+      return { updated: true, forwarded: true }
+    }
+    if (args.isHidden !== undefined) {
+      const session = this.getWorkspaceSessionForWorktree(worktreeId)
+      const unifiedId = this.persistedUnifiedTabId(worktreeId, hostTabId)
+      if (
+        !session ||
+        !this.store?.setWorkspaceSession ||
+        !(
+          session.unifiedTabs?.[worktreeId]?.some(
+            (tab) => tab.id === unifiedId || tab.entityId === unifiedId
+          ) || session.tabsByWorktree[worktreeId]?.some((tab) => tab.id === hostTabId)
+        )
+      ) {
+        throw new Error('tab_not_found')
+      }
     }
     args = await renameStructuredSessionTab(snapshot, hostTabId, args, () =>
       this.ensureStructuredAgentSessionHost()
@@ -102,7 +110,7 @@ export abstract class RuntimeHeadlessTabProperties extends OrcaRuntimeWithHeadle
           }
         : {})
     })
-    return { updated: true }
+    return { updated: true, ...(args.isHidden !== undefined ? { forwarded: false } : {}) }
   }
 
   /** What `title` reads once a manual name is cleared; readers that predate `customTitle` show it. */
@@ -115,58 +123,42 @@ export abstract class RuntimeHeadlessTabProperties extends OrcaRuntimeWithHeadle
     )
   }
 
+  private persistedUnifiedTabId(worktreeId: string, tabId: string): string {
+    const row = this.mobileSessionTabsByWorktree
+      .get(worktreeId)
+      ?.tabs.find((tab) => tab.id === tabId)
+    const session = this.getWorkspaceSessionForWorktree(worktreeId)
+    return row?.type === 'agent-session'
+      ? (session?.unifiedTabs?.[worktreeId]?.find(
+          (tab) => tab.contentType === 'agent-session' && tab.entityId === row.sessionId
+        )?.id ?? tabId)
+      : this.serveBrowserTabs.unifiedTabId(worktreeId, tabId)
+  }
+
   protected persistHeadlessSessionTabProps(
     worktreeId: string,
     tabId: string,
-    props: { color?: string | null; isPinned?: boolean; viewMode?: 'terminal' | 'chat' }
+    props: {
+      color?: string | null
+      isPinned?: boolean
+      isHidden?: boolean
+      viewMode?: 'terminal' | 'chat'
+    }
   ): void {
     const session = this.getWorkspaceSessionForWorktree(worktreeId)
     if (!session || !this.store?.setWorkspaceSession) {
       return
     }
-    const tabs = session.tabsByWorktree[worktreeId]
-    const nextSession: WorkspaceSessionState = { ...session }
-    let changed = false
-    if (tabs?.some((tab) => tab.id === tabId)) {
-      changed = true
-      nextSession.tabsByWorktree = {
-        ...session.tabsByWorktree,
-        [worktreeId]: tabs.map((tab) =>
-          tab.id === tabId
-            ? {
-                ...tab,
-                ...(props.color !== undefined ? { color: props.color } : {}),
-                ...(props.isPinned !== undefined ? { isPinned: props.isPinned } : {}),
-                ...(props.viewMode !== undefined ? { viewMode: props.viewMode } : {})
-              }
-            : tab
-        )
-      }
+    const updated = withSessionTabProps(
+      session,
+      worktreeId,
+      tabId,
+      this.persistedUnifiedTabId(worktreeId, tabId),
+      props
+    )
+    if (updated) {
+      this.setWorkspaceSessionForWorktree(worktreeId, updated)
     }
-
-    const unifiedTabs = session.unifiedTabs?.[worktreeId]
-    // A browser row is named by its page; a window keys the tab's props by the saved tab.
-    const unifiedId = this.serveBrowserTabs.unifiedTabId(worktreeId, tabId)
-    if (unifiedTabs?.some((tab) => tab.id === unifiedId || tab.entityId === unifiedId)) {
-      changed = true
-      nextSession.unifiedTabs = {
-        ...session.unifiedTabs,
-        [worktreeId]: unifiedTabs.map((tab) =>
-          tab.id === unifiedId || tab.entityId === unifiedId
-            ? {
-                ...tab,
-                ...(props.color !== undefined ? { color: props.color } : {}),
-                ...(props.isPinned !== undefined ? { isPinned: props.isPinned } : {})
-              }
-            : tab
-        )
-      }
-    }
-
-    if (!changed) {
-      return
-    }
-    this.setWorkspaceSessionForWorktree(worktreeId, nextSession)
   }
 
   protected applyHeadlessSessionTabPropsToSnapshot(
@@ -177,6 +169,7 @@ export abstract class RuntimeHeadlessTabProperties extends OrcaRuntimeWithHeadle
       customTitle?: string | null
       color?: string | null
       isPinned?: boolean
+      isHidden?: boolean
       viewMode?: 'terminal' | 'chat'
     }
   ): void {
@@ -198,6 +191,7 @@ export abstract class RuntimeHeadlessTabProperties extends OrcaRuntimeWithHeadle
           : {}),
         ...(props.color !== undefined ? { color: props.color } : {}),
         ...(props.isPinned !== undefined ? { isPinned: props.isPinned } : {}),
+        ...(props.isHidden !== undefined ? { isHidden: props.isHidden } : {}),
         ...(props.viewMode !== undefined ? { viewMode: props.viewMode } : {})
       }
     })
@@ -210,8 +204,10 @@ export abstract class RuntimeHeadlessTabProperties extends OrcaRuntimeWithHeadle
       snapshotVersion: snapshot.snapshotVersion + 1,
       tabs
     }
-    this.storeMobileSessionSnapshot(worktreeId, nextSnapshot)
-    this.emitMobileSessionTabsSnapshot(nextSnapshot)
+    const selected =
+      props.isHidden !== undefined ? followHiddenSnapshotSelection(nextSnapshot) : nextSnapshot
+    this.storeMobileSessionSnapshot(worktreeId, selected)
+    this.emitMobileSessionTabsSnapshot(selected)
   }
 
   protected getMobileSessionTopLevelTabId(tab: RuntimeMobileSessionSnapshotTab): string {

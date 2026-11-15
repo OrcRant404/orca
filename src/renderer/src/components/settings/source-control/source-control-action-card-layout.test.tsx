@@ -152,7 +152,7 @@ it('keeps the complete staged global setup across a template-only edit and appli
     '--latest-pending'
   )
   expect(screen.queryByRole('button', { name: 'Remove --model sonnet' })).toBeNull()
-  fireEvent.click(screen.getByRole('button', { name: 'Launch terminal' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Use terminal' }))
   expect(template).toHaveProperty('value', 'New unrelated template')
   await open()
   expect(screen.getByRole('textbox', { name: 'Arguments' })).toHaveProperty(

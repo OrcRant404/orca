@@ -99,7 +99,7 @@ export function createTabsFocusActions(
         } else {
           found = findTabAndWorktree(state.unifiedTabsByWorktree, tabId)
         }
-        if (!found) {
+        if (!found || found.tab.isHidden) {
           return state
         }
         const { tab, worktreeId } = found

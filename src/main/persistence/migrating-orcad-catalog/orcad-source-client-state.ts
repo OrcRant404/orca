@@ -235,7 +235,7 @@ function representableMobileSelection(
         : null,
     activeTabIdByGroupId: Object.fromEntries(
       Object.entries(selection.activeTabIdByGroupId).filter(
-        ([groupId, tabId]) => groupIds.has(groupId) && tabIds.has(tabId)
+        ([groupId, tabId]) => groupIds.has(groupId) && (tabId === null || tabIds.has(tabId))
       )
     ),
     ...(recentTabIds.length > 0 ? { recentTabIds } : {})

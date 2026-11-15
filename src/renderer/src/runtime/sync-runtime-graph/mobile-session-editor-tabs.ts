@@ -44,6 +44,7 @@ export function buildMobileMarkdownTab(
     documentVersion: draftVersion ?? `file:${sourceFile.id}`,
     color: unifiedTab?.color ?? null,
     isPinned: unifiedTab?.isPinned === true,
+    ...(unifiedTab?.isHidden !== undefined ? { isHidden: unifiedTab.isHidden } : {}),
     ...editorRowHost(file)
   }
 }
@@ -69,6 +70,7 @@ export function buildMobileFileTab(
     isDirty: file.isDirty,
     color: unifiedTab?.color ?? null,
     isPinned: unifiedTab?.isPinned === true,
+    ...(unifiedTab?.isHidden !== undefined ? { isHidden: unifiedTab.isHidden } : {}),
     isActive: unifiedTabId
       ? isUnifiedTabActiveInActiveGroup(inputs, unifiedTabId)
       : isFileActiveEditorSurface(inputs, file),

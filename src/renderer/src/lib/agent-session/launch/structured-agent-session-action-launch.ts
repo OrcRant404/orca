@@ -159,6 +159,9 @@ export async function openTerminalForDeclinedChat(
   } else {
     placeReplacementAfterSource(worktreeId, replacement, current)
   }
+  if (source()?.isHidden) {
+    await useAppStore.getState().setTabHidden(worktreeId, replacement.id, true)
+  }
   const placed = useAppStore.getState()
   current = source()
   replacement = (placed.unifiedTabsByWorktree[worktreeId] ?? []).find(

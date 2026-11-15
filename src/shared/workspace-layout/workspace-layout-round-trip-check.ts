@@ -14,6 +14,7 @@ const TAB_FACTS = [
   'aiVaultTitle',
   'quickCommandLabel',
   'isPinned',
+  'isHidden',
   'viewMode',
   'worktreeId'
 ]

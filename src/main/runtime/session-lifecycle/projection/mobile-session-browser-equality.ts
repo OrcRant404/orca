@@ -28,6 +28,7 @@ export function headlessBrowserTabsUnchanged(
           sameRuntimeBrowserPlacement(tab.placement, prev.placement))) &&
       tab.isActive === prev.isActive &&
       (tab.isPinned ?? false) === (prev.isPinned ?? false) &&
+      (tab.isHidden ?? false) === (prev.isHidden ?? false) &&
       (tab.color ?? null) === (prev.color ?? null) &&
       browserLoadErrorsEqual(tab.loadError, prev.loadError) &&
       browserCertificateFailuresEqual(tab.certificateFailure, prev.certificateFailure)

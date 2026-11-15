@@ -1,3 +1,4 @@
+import { HiddenTabIndicator } from '@/components/hidden-tabs/HiddenTabIndicator'
 import type React from 'react'
 import { FileText, MessageSquare, SquareTerminal } from 'lucide-react'
 import { AgentIcon } from '@/lib/agent-catalog'
@@ -87,6 +88,7 @@ export function WorktreeJumpPaletteWorkspaceTabRow({
               sessionAge={sessionAge}
               leadingBadges={
                 <>
+                  {result.isHidden && <HiddenTabIndicator />}
                   {result.isCurrentTab && (
                     <span className="shrink-0 self-center rounded-[6px] border border-border/60 bg-background/45 px-1.5 py-px text-[9px] font-medium leading-normal text-muted-foreground/88">
                       {t('auto.components.WorktreeJumpPalette.52404f8096', 'Current Tab')}

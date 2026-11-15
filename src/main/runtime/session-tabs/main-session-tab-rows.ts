@@ -1,7 +1,5 @@
-import {
-  normalizeMobileSessionTabSelection,
-  resolveMobileSessionActiveTab
-} from './mobile-session-tab-selection'
+import { followHiddenSnapshotSelection } from './hidden-session-selection'
+import { resolveMobileSessionActiveTab } from './mobile-session-tab-selection'
 // Use main's rows/order/groups, augmented by window-only rows and live view facts (selection, dirty state, titles, theme/status and editor drafts).
 
 import type { RuntimeMobileSessionSnapshotTab } from '../../../shared/runtime-mobile-session-tab-contracts'
@@ -136,7 +134,9 @@ export function withMainSessionTabRows(
   const rows = projected.tabs.map((row) =>
     isMainRow(row)
       ? withWindowFacts(row, windowRows.get(row.id), rules)
-      : (windowRows.get(row.id) ?? row)
+      : windowRows.has(row.id)
+        ? { ...windowRows.get(row.id)!, isHidden: row.isHidden }
+        : row
   )
   const windowOnlyIds = new Set(windowOnly.map((row) => row.id))
   const merged = withWindowOnlyRows(rows, published.tabs, windowOnlyIds)
@@ -206,7 +206,7 @@ export function withMainSessionTabRows(
       }
   const activeId = selection.activeTabId
   const { tabGroups: _windowGroups, tabGroupLayout: _windowLayout, ...stamps } = published
-  return normalizeMobileSessionTabSelection({
+  return followHiddenSnapshotSelection({
     ...stamps,
     ...selection,
     ...(tabGroups.length > 0 || published.tabGroups !== undefined ? { tabGroups } : {}),

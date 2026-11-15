@@ -80,7 +80,12 @@ function saveWorkspace(
       return {
         id: group.id,
         worktreeId,
-        activeTabId: activeTabId && group.tabOrder.includes(activeTabId) ? activeTabId : null,
+        activeTabId:
+          activeTabId &&
+          group.tabOrder.includes(activeTabId) &&
+          workspace.tabs.some((tab) => tab.id === activeTabId && tab.isHidden !== true)
+            ? activeTabId
+            : null,
         tabOrder: group.tabOrder,
         ...(selection?.recentTabIds
           ? {

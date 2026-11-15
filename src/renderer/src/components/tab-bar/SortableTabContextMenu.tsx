@@ -1,3 +1,4 @@
+import { HideTabMenuItem } from '@/components/hidden-tabs/HideTabMenuItem'
 import { Pencil, Pin, PinOff, SquareTerminal, Timer, X } from 'lucide-react'
 import {
   ContextMenuItem,
@@ -202,6 +203,7 @@ export function SortableTabContextMenu({
           {t('components.tab.bar.SortableTabContextMenu.allowAutoClose', 'Allow Auto-Close')}
         </ContextMenuItem>
       ) : null}
+      <HideTabMenuItem worktreeId={tab.worktreeId} unifiedTabId={unifiedTabId} />
       <CopyTabIdMenuItem menuKind="context" unifiedTabId={unifiedTabId} />
       <ContextMenuSeparator />
       <ContextMenuItem onSelect={() => !isPinned && onClose(tab.id)} disabled={isPinned}>

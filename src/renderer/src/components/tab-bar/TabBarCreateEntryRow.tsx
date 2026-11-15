@@ -1,3 +1,4 @@
+import { HiddenTabIndicator } from '@/components/hidden-tabs/HiddenTabIndicator'
 import { tabAgentLaunchOptionDisabled } from './tab-agent-launch-options'
 import { terminalPendingLabel } from './new-tab-agent-menu-model'
 import React, { useEffect, useRef, useState } from 'react'
@@ -149,6 +150,7 @@ export function EntryActionRow({
       onClick={onClick}
       onPointerMove={setupEntry ? undefined : onHover}
     >
+      {option.kind === 'tab' && option.option.isHidden ? <HiddenTabIndicator /> : null}
       {loading ? (
         <Loader2 className="size-3.5 shrink-0 animate-spin" aria-hidden="true" />
       ) : (

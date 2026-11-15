@@ -50,10 +50,12 @@ export function pickNextActiveTab(
   tabOrder: string[],
   recentTabIds: string[] | undefined,
   closingTabId: string,
-  tabs?: readonly Pick<Tab, 'id'>[]
+  tabs?: readonly Pick<Tab, 'id' | 'isHidden'>[]
 ): string | null {
   if (tabs) {
-    const realIds = new Set(tabs.map((tab) => tab.id))
+    const realIds = new Set(
+      tabs.filter((tab) => tab.isHidden !== true || tab.id === closingTabId).map((tab) => tab.id)
+    )
     tabOrder = tabOrder.filter((id) => realIds.has(id))
   }
   const sanitized = sanitizeRecentTabIds(recentTabIds, tabOrder)
@@ -62,5 +64,5 @@ export function pickNextActiveTab(
       return sanitized[i]
     }
   }
-  return pickNeighbor(tabOrder, closingTabId)
+  return pickNeighbor(tabOrder, closingTabId) ?? tabOrder.find((id) => id !== closingTabId) ?? null
 }

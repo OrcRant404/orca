@@ -94,7 +94,7 @@ export function useTabBarItemProjection({
         browserMap,
         agentSessionMap,
         unifiedTabByVisibleId
-      }),
+      }).filter((item) => !unifiedTabs.find((tab) => tab.id === item.unifiedTabId)?.isHidden),
     [
       tabBarOrder,
       terminalIds,
@@ -106,7 +106,8 @@ export function useTabBarItemProjection({
       editorMap,
       browserMap,
       agentSessionMap,
-      unifiedTabByVisibleId
+      unifiedTabByVisibleId,
+      unifiedTabs
     ]
   )
   const orderedIds = useMemo(() => orderedItems.map((item) => item.id), [orderedItems])

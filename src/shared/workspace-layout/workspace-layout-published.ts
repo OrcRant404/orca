@@ -66,6 +66,7 @@ export type PublishedTab = {
   aiVaultTitle?: AiVaultSessionTitle | null
   quickCommandLabel?: string | null
   color: string | null
+  isHidden?: boolean
   isPinned?: boolean
   viewMode?: 'terminal' | 'chat'
   isPreview?: boolean
@@ -151,6 +152,7 @@ function publishTab(
       'aiVaultTitle',
       'quickCommandLabel',
       'isPinned',
+      'isHidden',
       'viewMode',
       'isPreview',
       'agentSessionAgent'

@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { resolveActiveSessionTab } from './active-session-tab'
 
-type Tab = { id: string; type: 'terminal' | 'browser' | 'agent-session'; isActive: boolean }
+type Tab = {
+  id: string
+  type: 'terminal' | 'browser' | 'agent-session'
+  isActive: boolean
+  isHidden?: boolean
+}
 
 function terminalTab(id: string, isActive: boolean): Tab {
   return { id, type: 'terminal', isActive }
@@ -12,6 +17,54 @@ function browserTab(id: string, isActive: boolean): Tab {
 }
 
 describe('resolveActiveSessionTab', () => {
+  it('keeps unhide-only snapshots unselected while retaining the legacy first-row fallback', () => {
+    const options = {
+      pendingActiveSessionTabId: null,
+      selectedSessionTabId: null
+    }
+    const hidden = [{ ...terminalTab('restored', false), isHidden: true }]
+    expect(
+      resolveActiveSessionTab(hidden, { ...options, snapshot: { activeTabId: null } }).activeTab
+    ).toBeNull()
+
+    const visible = [terminalTab('restored', false)]
+    expect(
+      resolveActiveSessionTab(visible, { ...options, snapshot: { activeTabId: null } }).activeTab
+    ).toBeNull()
+    expect(resolveActiveSessionTab(visible, options).activeTab?.id).toBe('restored')
+  })
+
+  it('honors a declared unselected group when the legacy global selection field is absent', () => {
+    const result = resolveActiveSessionTab([terminalTab('restored', false)], {
+      pendingActiveSessionTabId: null,
+      selectedSessionTabId: null,
+      snapshot: {
+        activeGroupId: 'group',
+        tabGroups: [{ id: 'group', activeTabId: null }]
+      }
+    })
+
+    expect(result.activeTab).toBeNull()
+  })
+
+  it('preserves phone-local and pending user picks across an unselected host publication', () => {
+    const tabs = [terminalTab('terminal', false), browserTab('browser', false)]
+    const local = resolveActiveSessionTab(tabs, {
+      pendingActiveSessionTabId: null,
+      selectedSessionTabId: 'browser',
+      snapshot: { activeTabId: null }
+    })
+    expect(local.activeTab?.id).toBe('browser')
+
+    const pending = resolveActiveSessionTab(tabs, {
+      pendingActiveSessionTabId: 'terminal',
+      selectedSessionTabId: 'browser',
+      snapshot: { activeTabId: null }
+    })
+    expect(pending.activeTab?.id).toBe('terminal')
+    expect(pending.clearPendingActiveSessionTabId).toBe(false)
+  })
+
   it('keeps the device on its browser tab when a republication flags the agent terminal active', () => {
     const result = resolveActiveSessionTab(
       [terminalTab('agent', true), browserTab('browser', false)],

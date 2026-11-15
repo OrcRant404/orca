@@ -44,6 +44,7 @@ type OpenTabSearchResultBase = {
   /** Stable across renders, so selection survives the deferred query. */
   id: string
   title: string
+  isHidden?: boolean
   /** Engine secondary text when the match came from a secondary field. */
   matchedText: string | null
   matchedTexts?: readonly string[]
@@ -130,6 +131,7 @@ function baseResult(
     executionHostId,
     id: result.paletteIdentity,
     title: result.title,
+    isHidden: result.isHidden,
     matchedText: getMatchedText(result),
     matchedTexts: result.secondaryMatches.map((match) => match.text).filter(Boolean),
     worktreeId: result.worktreeId

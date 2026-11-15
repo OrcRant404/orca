@@ -12,16 +12,19 @@ import { getProfileUserDataPath } from '../../orca-profiles/profile-storage-path
 const PATH_SELECTOR_PREFIX = 'path:'
 const SCRATCH_FOLDER_NAME = /^[0-9a-f]{32}$/
 
-function chatScratchRoot(): string {
+function chatScratchRoot(): Promise<string> {
   return nativeChatScratchRootFor(getProfileUserDataPath())
 }
 
-export function resolveRuntimeAuthorizedPath(
+export async function resolveRuntimeAuthorizedPath(
   targetPath: string,
   store: RuntimeStore,
   options: ResolveAuthorizedPathOptions = {}
 ): Promise<string> {
-  return resolveAuthorizedPath(targetPath, store, { ...options, extraRoots: [chatScratchRoot()] })
+  return resolveAuthorizedPath(targetPath, store, {
+    ...options,
+    extraRoots: [await chatScratchRoot()]
+  })
 }
 
 export function isChatScratchWorktreeId(worktreeId: string): boolean {
@@ -34,7 +37,10 @@ export async function resolveChatScratchSelectorFolder(selector: string): Promis
     return null
   }
   const folder = selector.slice(PATH_SELECTOR_PREFIX.length)
-  if (dirname(folder) !== chatScratchRoot() || !SCRATCH_FOLDER_NAME.test(basename(folder))) {
+  if (
+    dirname(folder) !== (await chatScratchRoot()) ||
+    !SCRATCH_FOLDER_NAME.test(basename(folder))
+  ) {
     return null
   }
   try {

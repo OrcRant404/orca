@@ -1,3 +1,4 @@
+import { HideTabMenuItem } from '@/components/hidden-tabs/HideTabMenuItem'
 import { Pencil, Pin, PinOff, X } from 'lucide-react'
 import {
   ContextMenuItem,
@@ -127,6 +128,7 @@ export function EditorFileTabContextMenu({
           ? t('auto.components.tab.bar.EditorFileTabContextMenu.8e9d603a09', 'Unpin Tab')
           : t('auto.components.tab.bar.EditorFileTabContextMenu.fdd29eb669', 'Pin Tab')}
       </ContextMenuItem>
+      <HideTabMenuItem worktreeId={file.worktreeId} unifiedTabId={unifiedTabId} />
       <CopyTabIdMenuItem menuKind="context" unifiedTabId={unifiedTabId} />
       <ContextMenuSeparator />
       <ContextMenuItem onSelect={() => !isPinned && onClose()} disabled={isPinned}>

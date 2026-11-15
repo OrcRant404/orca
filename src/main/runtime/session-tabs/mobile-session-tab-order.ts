@@ -1,3 +1,4 @@
+import { reorderProjectedTabOrder } from '../../../shared/workspace-layout/tab-order'
 import type { OrcaRuntimeWithStoredMobileSnapshotHasStalePreservedTab as BrowserOwnership } from './mobile-session-publication-preservation'
 import type { BrowserTabInfo } from '../../../shared/runtime-browser-contracts'
 import type {
@@ -36,6 +37,24 @@ export abstract class RuntimeMobileSessionTabOrder extends RuntimeHeadlessTermin
       .map((tabId) => this.resolveMobileSessionHostTabId(snapshot, tabId) ?? tabId)
       // Reorder the sanitized client model; raw groups may contain browser ids hidden from paired web clients.
       .filter((tabId) => returnedIds.has(tabId))
+    const omittedHidden = expected.filter(
+      (id) =>
+        !seen.has(id) &&
+        snapshot?.tabs.some(
+          (tab) => tab.isHidden && this.resolveMobileSessionHostTabId(snapshot, tab.id) === id
+        )
+    )
+    if (omittedHidden.length > 0) {
+      const merged = reorderProjectedTabOrder(
+        expected.filter((id) => seen.has(id) || omittedHidden.includes(id)),
+        normalized,
+        ''
+      )
+      normalized.splice(0, normalized.length, ...merged)
+      for (const id of omittedHidden) {
+        seen.add(id)
+      }
+    }
     const structuredIds = expected.filter((tabId) =>
       snapshot?.tabs.some((tab) => tab.type === 'agent-session' && tab.id === tabId)
     )

@@ -44,7 +44,7 @@ export function createNativeChatVisualsDelivery(deps: {
         })
         return null
       }
-      const folder = nativeChatScratchFolderFor(deps.stateDirectory, sessionId)
+      const folder = await nativeChatScratchFolderFor(deps.stateDirectory, sessionId)
       await mkdir(folder, { recursive: true, mode: 0o700 })
       return { folder, skill }
     } catch (error) {

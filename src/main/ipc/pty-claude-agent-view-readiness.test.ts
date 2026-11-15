@@ -63,11 +63,17 @@ describe.each(['local', 'daemon'] as const)('%s PTY navigation readiness', (prov
     })
     const config = join(tmpdir(), 'orca-spawn-pending-agent-view-config')
     vi.stubEnv('CLAUDE_CONFIG_DIR', config)
-    const reconcileConfig = vi.fn(() => gate)
+    let startConfigReconciliation = () => {}
+    const configReconciliationStarted = new Promise<void>((resolve) => {
+      startConfigReconciliation = resolve
+    })
     const service = new agentView.ClaudeAgentViewService(
       join(tmpdir(), 'orca-spawn-pending-agent-view'),
       {
-        reconcileConfig,
+        reconcileConfig: () => {
+          startConfigReconciliation()
+          return gate
+        },
         ensurePlugin: async () => join(tmpdir(), 'orca-spawn-agent-view-plugin'),
         loginEnv: async () => ({ CLAUDE_CONFIG_DIR: config }),
         listProfiles: async () => []
@@ -78,18 +84,14 @@ describe.each(['local', 'daemon'] as const)('%s PTY navigation readiness', (prov
     const reconcile = service.reconcile(settings).then(() => {
       reconciled = true
     })
-    await vi.waitFor(() => expect(reconcileConfig).toHaveBeenCalledOnce())
+    await configReconciliationStarted
     const serviceSpy = vi.spyOn(agentView, 'getClaudeAgentViewService').mockReturnValue(service)
-    let env: Record<string, string> | undefined
-    const spawn = (
+    const spawn =
       provider === 'daemon'
         ? daemonSpawnAndGetEnv({}, undefined, () => settings)
         : spawnAndGetEnv({}, undefined, undefined, () => settings)
-    ).then((result) => {
-      env = result
-    })
     try {
-      await vi.waitFor(() => expect(env).toBeDefined())
+      const env = await spawn
       expect(reconciled).toBe(false)
       expect(env).not.toHaveProperty('ORCA_CLAUDE_AGENT_VIEW_PLUGIN_DIR')
     } finally {

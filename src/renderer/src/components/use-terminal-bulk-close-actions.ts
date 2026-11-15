@@ -136,7 +136,9 @@ export function useTerminalBulkCloseActions(
         ids = order.slice(0, index)
       }
       const tabs = state.unifiedTabsByWorktree[activeWorktreeId] ?? []
-      const pinnedIds = new Set(tabs.flatMap((tab) => (tab.isPinned ? [tab.id, tab.entityId] : [])))
+      const pinnedIds = new Set(
+        tabs.flatMap((tab) => (tab.isPinned || tab.isHidden ? [tab.id, tab.entityId] : []))
+      )
       return ids.filter((id) => !pinnedIds.has(id))
     },
     [activeWorktreeId]

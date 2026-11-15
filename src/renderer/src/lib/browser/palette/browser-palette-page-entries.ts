@@ -116,6 +116,7 @@ export function buildSearchableBrowserPages({
         }
         entries.push({
           page,
+          isHidden: unifiedTab?.isHidden === true,
           workspace,
           worktree,
           repoName,

@@ -1,3 +1,4 @@
+import { visibleTabOrder } from '../../../../shared/workspace-layout/tab-visibility'
 import { resolveTerminalCreatedShell } from './terminal-created-shell'
 import { warnIfZCodeCannotOpenSession } from '@/components/terminal-pane/provider-notices/zcode-capability/zcode-missing-tui-notice'
 import { clearWorktreeSleepIntent } from '@/lib/worktree-sleep-intent'
@@ -157,7 +158,9 @@ export function createTerminalTabCreationActions(
                 const replacedActiveTabId = Boolean(
                   entry.activeTabId && orphanTerminalIds.has(entry.activeTabId)
                 )
-                const fallbackActiveTabId = recentTabIds.at(-1) ?? tabOrder[0] ?? null
+                const visible = visibleTabOrder(tabOrder, existingUnifiedTabs)
+                const fallbackActiveTabId =
+                  recentTabIds.findLast((id) => visible.includes(id)) ?? visible[0] ?? null
                 const activeTabId = replacedActiveTabId ? fallbackActiveTabId : entry.activeTabId
                 return {
                   ...entry,

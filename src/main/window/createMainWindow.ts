@@ -47,11 +47,14 @@ import { recordAgentSessionRuntimeEnd } from '../runtime/agent-session/records/a
 
 export { WINDOW_QUIT_RENDERER_ACK_TIMEOUT_MS }
 
+const windowPreparation = new WeakMap<BrowserWindow, Promise<void>>()
+
 export function loadMainWindow(mainWindow: BrowserWindow, observer?: MainWindowLoadObserver): void {
-  const load =
+  const load = (windowPreparation.get(mainWindow) ?? Promise.resolve()).then(() =>
     !app.isPackaged && process.env.ELECTRON_RENDERER_URL
       ? mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL)
       : mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+  )
   // Observe each load promise so failures cannot leave recovery waiting silently.
   load.then(
     () => observer?.onLoaded?.(),
@@ -204,7 +207,7 @@ export function createMainWindow(
     savedMaximized,
     store
   })
-  installMainWindowWebviewSecurity(mainWindow)
+  windowPreparation.set(mainWindow, installMainWindowWebviewSecurity(mainWindow))
   const activity = installMainWindowActivityRelay(mainWindow)
   if (pumpHiddenFrames) {
     stopHiddenWindowFramePumpOnShow(mainWindow)

@@ -1,3 +1,4 @@
+import { HiddenTabsEmptyState } from '@/components/hidden-tabs/HiddenTabsEmptyState'
 import { Suspense, useCallback, useMemo } from 'react'
 import { lazyWithRetry as lazy } from '@/lib/lazy-with-retry'
 import { useDroppable } from '@dnd-kit/core'
@@ -384,6 +385,13 @@ export default function TabGroupPanel({
             </div>
           )}
 
+        {!activeTab && model.groupTabs.length > 0 && !showsSplitLanding ? (
+          <HiddenTabsEmptyState
+            worktreeId={worktreeId}
+            onCreate={commands.newTerminalTab}
+            allHidden={model.groupTabs.every((tab) => tab.isHidden)}
+          />
+        ) : null}
         {showsSplitLanding ? (
           <SplitPaneLanding
             worktreeId={worktreeId}

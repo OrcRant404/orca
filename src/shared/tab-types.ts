@@ -65,6 +65,7 @@ export type Tab = {
   sortOrder: number
   createdAt: number
   isPreview?: boolean // preview tabs get replaced by next single-click open
+  isHidden?: boolean
   isPinned?: boolean // pinned tabs survive "close others"
   /** Provider backing a structured agent-session tab. */
   agentSessionAgent?: AgentType

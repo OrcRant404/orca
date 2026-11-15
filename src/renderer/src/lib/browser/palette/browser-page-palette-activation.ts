@@ -83,3 +83,29 @@ export function activateBrowserPagePaletteResult({
   }
   return { status: 'activated', pageId, focusTarget }
 }
+
+export async function unhideAndActivateBrowserPagePaletteResult(
+  result: BrowserPagePaletteActivationTarget
+): Promise<BrowserPagePaletteActivationResult> {
+  const state = useAppStore.getState()
+  if (!state.getKnownWorktreeById(result.worktreeId, result.executionHostId)) {
+    return { status: 'failed', reason: 'missing-worktree' }
+  }
+  if (
+    !state.browserPagesByWorkspace[result.workspaceId]?.some(
+      (page) =>
+        page.id === result.pageId &&
+        page.workspaceId === result.workspaceId &&
+        page.worktreeId === result.worktreeId
+    )
+  ) {
+    return { status: 'failed', reason: 'missing-page' }
+  }
+  const tab = getActivatableBrowserWorkspaceTab(result)
+  if (!tab) {
+    return { status: 'failed', reason: 'missing-tab' }
+  }
+  const { unhideTabForActivation } = await import('@/store/slices/tabs/tabs-visibility-actions')
+  await unhideTabForActivation(result.worktreeId, tab.id)
+  return activateBrowserPagePaletteResult(result)
+}

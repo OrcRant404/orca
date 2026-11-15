@@ -7,6 +7,7 @@ export type TypeCyclableTab = {
   type: TabCycleType
   id: string
   tabId?: string
+  isHidden?: boolean
 }
 
 export function isTerminalCycleType(type: string): type is 'terminal' | 'agent-session' {
@@ -19,7 +20,7 @@ export function getNextTerminalCycleTab(
   active: TypeCyclableTab,
   direction: number
 ): TypeCyclableTab | null {
-  const eligibleTabs = tabs.filter((tab) => isTerminalCycleType(tab.type))
+  const eligibleTabs = tabs.filter((tab) => !tab.isHidden && isTerminalCycleType(tab.type))
   const exactIndex = active.tabId ? eligibleTabs.findIndex((tab) => tab.tabId === active.tabId) : -1
   const currentIndex =
     exactIndex !== -1
@@ -86,6 +87,7 @@ export function getNextTabAcrossAllTypes({
   activeGroupTabId,
   direction
 }: GetNextTabAcrossAllTypesParams): TypeCyclableTab | null {
+  tabs = tabs.filter((tab) => !tab.isHidden)
   if (tabs.length <= 1) {
     return null
   }
@@ -102,7 +104,7 @@ export function getNextTabAcrossAllTypes({
   )
   const currentIndex = groupTabIdInNav
     ? tabs.findIndex((tab) => tab.tabId === groupTabIdInNav)
-    : tabs.findIndex((tab) => tab.type === activeTabType && tab.id === currentId)
+    : tabs.findIndex((tab) => !tab.isHidden && tab.type === activeTabType && tab.id === currentId)
 
   if (currentIndex === -1) {
     return direction < 0 ? tabs.at(-1)! : tabs.at(0)!
@@ -120,7 +122,7 @@ export function getNextTabWithinActiveType({
   activeGroupTabId,
   direction
 }: GetNextTabWithinActiveTypeParams): TypeCyclableTab | null {
-  const tabsOfActiveType = tabs.filter((tab) => tab.type === activeTabType)
+  const tabsOfActiveType = tabs.filter((tab) => !tab.isHidden && tab.type === activeTabType)
   if (tabsOfActiveType.length <= 1) {
     return null
   }
@@ -154,6 +156,7 @@ export function getPreviousRecentTab(
   recentTabIds: string[] | undefined,
   activeGroupTabId: string | null
 ): TypeCyclableTab | null {
+  tabs = tabs.filter((tab) => !tab.isHidden)
   if (!activeGroupTabId) {
     return null
   }

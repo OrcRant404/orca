@@ -9,14 +9,15 @@ import { closeLocalTerminalTabState } from './close-local-terminal-tab-state'
 
 type TerminalTabBulkActionState = ReturnType<typeof useAppStore.getState>
 
-function isPinnedVisibleTab(
+function isProtectedTab(
   state: TerminalTabBulkActionState,
   worktreeId: string,
   visibleId: string
 ): boolean {
   return (
     (state.unifiedTabsByWorktree?.[worktreeId] ?? []).some(
-      (tab) => (tab.id === visibleId || tab.entityId === visibleId) && tab.isPinned
+      (tab) =>
+        (tab.id === visibleId || tab.entityId === visibleId) && (tab.isPinned || tab.isHidden)
     ) ?? false
   )
 }
@@ -37,7 +38,7 @@ export function closeOtherTerminalTabs(tabId: string, activeWorktreeId: string |
   )?.runtimeEnvironmentId
   const closeHostTerminalTabs = isWebRuntimeSessionActive(runtimeEnvironmentId)
   for (const tab of currentTabs) {
-    if (tab.id === tabId || isPinnedVisibleTab(state, activeWorktreeId, tab.id)) {
+    if (tab.id === tabId || isProtectedTab(state, activeWorktreeId, tab.id)) {
       continue
     }
     if (closeHostTerminalTabs) {

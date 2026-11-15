@@ -1,6 +1,7 @@
 import type { StateCreator } from 'zustand'
 import type { AppState } from '../../types'
 import type { TabsSlice } from './tabs-slice-contract'
+import { createTabsVisibilityActions } from './tabs-visibility-actions'
 import { createTabsCreateActions } from './tabs-create-actions'
 import { createTabsFocusActions } from './tabs-focus-actions'
 import { createTabsCloseActions } from './tabs-close-actions'
@@ -23,6 +24,7 @@ export const createTabsSlice: StateCreator<AppState, [], [], TabsSlice> = (set, 
     splitLandingGroupIds: {},
     layoutByWorktree: {},
     ...createTabsCreateActions(set, get),
+    ...createTabsVisibilityActions(set, get),
     ...createTabsFocusActions(set, get),
     ...createTabsCloseActions(set, get),
     ...createTabsBulkCloseActions(set, get),

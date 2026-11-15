@@ -83,9 +83,9 @@ export function parseMobileSelections(value: unknown): PersistedMobileClientTabS
         rawSelection.activeTabIdByGroupId,
         'orcad_migration_dormant_mobile_selection_tabs_invalid'
       )
-      const tabs: Record<string, string> = {}
+      const tabs: Record<string, string | null> = {}
       for (const [groupId, tabId] of Object.entries(activeTabIdByGroupId)) {
-        if (!groupId || typeof tabId !== 'string' || !tabId) {
+        if (!groupId || (tabId !== null && (typeof tabId !== 'string' || !tabId))) {
           throw new Error('orcad_migration_dormant_mobile_selection_tabs_invalid')
         }
         tabs[groupId] = tabId

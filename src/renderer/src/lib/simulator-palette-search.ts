@@ -120,6 +120,7 @@ function baseResult(
       entry.tab.id
     ]),
     tabId: entry.tab.id,
+    isHidden: entry.tab.isHidden === true,
     worktreeId: entry.worktree.id,
     groupId: entry.tab.groupId,
     title: simulatorPaletteTabTitle(entry.tab, t),

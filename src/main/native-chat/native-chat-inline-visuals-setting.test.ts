@@ -69,7 +69,7 @@ describe('inline visuals launch preference', () => {
     expect(launch.env).not.toHaveProperty(NATIVE_CHAT_SCRATCH_DIR_ENV)
     expect(launch.env?.KEEP).toBe('yes')
     expect(check.mock.calls.map(([flag]) => flag)).not.toContain(CLAUDE_PLUGIN_DIR_FLAG)
-    expect(existsSync(nativeChatScratchFolderFor(stateDirectory, sessionId))).toBe(false)
+    expect(existsSync(await nativeChatScratchFolderFor(stateDirectory, sessionId))).toBe(false)
   })
 
   it('gives new Codex chats the current preference without changing another live chat', async () => {
@@ -114,7 +114,7 @@ describe('inline visuals launch preference', () => {
       await start('first')
       const first = codex.connections[0]!
       const firstCalls = [...first.calls]
-      const firstFolder = nativeChatScratchFolderFor(stateDirectory, 'first')
+      const firstFolder = await nativeChatScratchFolderFor(stateDirectory, 'first')
       expect(first.launch.env?.[NATIVE_CHAT_SCRATCH_DIR_ENV]).toBe(firstFolder)
       expect(first.calls.find(({ method }) => method === 'thread/start')?.params).toMatchObject({
         config: { 'sandbox_workspace_write.writable_roots': ['/user/notes', firstFolder] }
@@ -136,7 +136,7 @@ describe('inline visuals launch preference', () => {
         'sandbox_workspace_write.writable_roots'
       ])
       expect(disabledOpen?.params?.config).not.toHaveProperty([scratchDirOverride])
-      expect(existsSync(nativeChatScratchFolderFor(stateDirectory, 'disabled'))).toBe(false)
+      expect(existsSync(await nativeChatScratchFolderFor(stateDirectory, 'disabled'))).toBe(false)
       expect(first.closed).toBe(false)
       expect(first.calls).toEqual(firstCalls)
 
@@ -147,7 +147,7 @@ describe('inline visuals launch preference', () => {
         reenabled.calls.find(({ method }) => method === 'skills/extraRoots/set')?.params
       ).toEqual({ extraRoots: [SKILL.skillsRoot] })
       expect(reenabled.launch.env?.[NATIVE_CHAT_SCRATCH_DIR_ENV]).toBe(
-        nativeChatScratchFolderFor(stateDirectory, 'reenabled')
+        await nativeChatScratchFolderFor(stateDirectory, 'reenabled')
       )
       expect(first.closed).toBe(false)
       expect(first.calls).toEqual(firstCalls)

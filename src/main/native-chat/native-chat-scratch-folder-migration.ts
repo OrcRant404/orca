@@ -76,7 +76,7 @@ export async function migrateLegacyNativeChatVisualsFolders(
   stateDirectory: string,
   logger: StructuredAgentSessionLogger
 ): Promise<void> {
-  const root = nativeChatScratchRootFor(stateDirectory)
+  const root = await nativeChatScratchRootFor(stateDirectory)
   for (const [sourceRoot, suffix] of [
     [join(stateDirectory, LEGACY_ROOT_NAME), ''],
     [root, '.expired']

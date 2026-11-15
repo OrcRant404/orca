@@ -9,6 +9,7 @@ export type TerminalRecord = {
   title: string
   terminalTheme?: MobileTerminalTheme
   isActive: boolean
+  isHidden?: boolean
   /** From `terminal.list`; parked and proven-absent leaves report false. */
   connected?: boolean
   /** From `terminal.list`; a live PTY with no leaf, so it never appears as a tab. */
@@ -32,6 +33,7 @@ export type MobileTerminalSessionTab = {
   launchDraftCreatedAt?: number
   terminalTheme?: MobileTerminalTheme
   isActive: boolean
+  isHidden?: boolean
 }
 
 type MobileSessionTabLike =
@@ -45,6 +47,7 @@ type MobileSessionTabLike =
       isDirty?: boolean
       documentVersion?: string
       isActive?: boolean
+      isHidden?: boolean
     }
   | {
       type: 'file'
@@ -57,6 +60,7 @@ type MobileSessionTabLike =
       oldPath?: string
       isDirty?: boolean
       isActive?: boolean
+      isHidden?: boolean
     }
   | {
       type: 'browser'
@@ -70,6 +74,7 @@ type MobileSessionTabLike =
       canGoBack?: boolean
       canGoForward?: boolean
       isActive?: boolean
+      isHidden?: boolean
     }
   | {
       type: 'agent-session'
@@ -79,6 +84,7 @@ type MobileSessionTabLike =
       agent?: string
       chatStatus?: unknown
       isActive?: boolean
+      isHidden?: boolean
     }
 
 export function mobileTerminalThemesEqual(
@@ -140,6 +146,7 @@ function mobileSessionTabEqual(
     a.type !== b.type ||
     a.id !== b.id ||
     a.title !== b.title ||
+    (a.isHidden ?? false) !== (b.isHidden ?? false) ||
     a.isActive !== b.isActive
   ) {
     return false
@@ -258,6 +265,7 @@ export function getTerminalRecordsFromSessionTabs(
         title: tab.title || translate('session.terminalRecords.defaultTitle', 'Terminal'),
         terminalTheme: tab.terminalTheme,
         isActive: tab.isActive === true,
+        ...(tab.isHidden !== undefined ? { isHidden: tab.isHidden } : {}),
         connected: true
       }
     ]
@@ -299,6 +307,7 @@ export function terminalRecordsEqual(
         terminal.title === b[index]?.title &&
         mobileTerminalThemesEqual(terminal.terminalTheme, b[index]?.terminalTheme) &&
         terminal.isActive === b[index]?.isActive &&
+        (terminal.isHidden ?? false) === (b[index]?.isHidden ?? false) &&
         terminal.agentIdentity === b[index]?.agentIdentity
     )
   )

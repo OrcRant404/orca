@@ -1,3 +1,4 @@
+import type { UiSessionTabEventApi } from './ui-session-tab-events'
 import type {
   RuntimeEditorTabReveal,
   RuntimeFileOpenPosition
@@ -56,7 +57,6 @@ import type {
 } from '../../shared/agent-session/lifecycle/agent-session-resume'
 import type { TerminalPaneSplitSource } from '../../shared/feature-education-telemetry'
 import type {
-  RuntimeMobileSessionTabMove,
   RuntimeTerminalCreateRequestPayload,
   RuntimeTerminalPresentation
 } from '../../shared/runtime-types'
@@ -77,7 +77,7 @@ import type {
 
 export type CloseActiveTabPayload = { sourceId: string }
 
-export type UiCommandEventApi = {
+export type UiCommandEventApi = UiSessionTabEventApi & {
   getJiraQuickFilters?: () => Promise<JiraQuickFilterState>
   setJiraQuickFilters?: (state: JiraQuickFilterState) => Promise<JiraQuickFilterState>
   getJiraSavedFilters?: () => Promise<JiraSavedFilterState>
@@ -270,9 +270,6 @@ export type UiCommandEventApi = {
   onCloseSessionTab: (callback: (data: { tabId: string; worktreeId: string }) => void) => () => void
   onSessionTabCloseRequest: (callback: (request: SessionTabCloseRequest) => void) => () => void
   respondSessionTabClose: (response: SessionTabCloseResponse) => void
-  onMoveSessionTab: (
-    callback: (data: { worktreeId: string } & RuntimeMobileSessionTabMove) => void
-  ) => () => void
   onTerminalPaneMoveToNewTabRequest?: (
     callback: (request: TerminalPaneMoveToNewTabRequest) => void
   ) => () => void

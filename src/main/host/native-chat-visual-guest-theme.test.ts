@@ -62,10 +62,13 @@ function contents(id: number, hostWebContents: EventEmitter | null = null) {
     send: vi.fn()
   })
 }
-function setup() {
+async function setup() {
   const host = contents(1)
   // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: fixture implements only the Electron members the installer uses.
-  installNativeChatVisualGuestTheme({ webContents: host } as unknown as BrowserWindow)
+  await installNativeChatVisualGuestTheme({
+    webContents: host,
+    isDestroyed: () => false
+  } as unknown as BrowserWindow)
   const guest = contents(2)
   guest.hostWebContents = host
   const handler = (channel: string) => ipc.on.mock.calls.findLast(([name]) => name === channel)![1]
@@ -97,8 +100,8 @@ beforeEach(() => {
 })
 
 describe('visual guest theme handoff', () => {
-  it('publishes only from the host main frame and reads only owned visual main frames', () => {
-    const { host, guest, event, publish, read } = setup()
+  it('publishes only from the host main frame and reads only owned visual main frames', async () => {
+    const { host, guest, event, publish, read } = await setup()
     publish(event(), dark)
     const empty = event()
     read(empty)
@@ -119,7 +122,7 @@ describe('visual guest theme handoff', () => {
     expect(ordinary.returnValue).toBeNull()
   })
 
-  it('applies saved media at the authenticated frame URL before every synchronous reply', () => {
+  it('applies saved media at the authenticated frame URL before every synchronous reply', async () => {
     const directory = mkdtempSync(join(tmpdir(), 'orca-visual-media-'))
     configureBrowserSiteDisplayStore(directory)
     updateBrowserSiteDisplay('work', 'file://', { colorScheme: 'light' })
@@ -127,7 +130,7 @@ describe('visual guest theme handoff', () => {
     display.onGuestDocumentStart.mockImplementation(
       controller.onGuestDocumentStart.bind(controller)
     )
-    const { host, guest, event, publish, read } = setup()
+    const { host, guest, event, publish, read } = await setup()
     const sent: string[] = []
     const debuggerEvents = new EventEmitter()
     Object.assign(guest, {
@@ -154,9 +157,9 @@ describe('visual guest theme handoff', () => {
     }
   })
 
-  it('does not overwrite another window’s synchronous answer', () => {
-    const first = setup()
-    const second = setup()
+  it('does not overwrite another window’s synchronous answer', async () => {
+    const first = await setup()
+    const second = await setup()
     first.publish(first.event(first.host), dark)
     const request = first.event()
     first.read(request)

@@ -20,8 +20,14 @@ export function MobileSessionContentState({
   createError,
   onReconnect,
   onRetryTabs,
-  onCreateTab
+  onCreateTab,
+  hiddenCount = 0,
+  visibleCount = 0,
+  onShowHidden
 }: {
+  visibleCount?: number
+  hiddenCount?: number
+  onShowHidden?: () => void
   connState: ConnectionState
   hostName: string | null
   /** The workspace whose remembered strip is drawn above this body, if any. */
@@ -89,10 +95,20 @@ export function MobileSessionContentState({
   return (
     <MobileStateView
       icon={SquareTerminal}
-      title={t('session.activeContent.noTabs', 'No tabs in this session')}
+      title={
+        hiddenCount > 0 && visibleCount === 0
+          ? t('session.hidden.allHidden', 'All tabs are hidden')
+          : visibleCount > 0
+            ? t('session.hidden.chooseTab', 'Choose a tab to continue')
+            : t('session.activeContent.noTabs', 'No tabs in this session')
+      }
       message={createFailure?.message}
       details={createFailure?.details}
-      action={{ label: t('session.activeContent.createTab', 'Create Tab'), onPress: onCreateTab }}
+      action={
+        hiddenCount > 0 && onShowHidden
+          ? { label: t('session.hidden.title', 'Hidden tabs'), onPress: onShowHidden }
+          : { label: t('session.activeContent.createTab', 'Create Tab'), onPress: onCreateTab }
+      }
     />
   )
 }

@@ -183,6 +183,10 @@ export function projectStructuredSessionTab(
   }
   const tab: RuntimeMobileSessionAgentTab = {
     type: 'agent-session',
+    isHidden:
+      input.savedOrder?.tabs.find(
+        (tab) => tab.type === 'agent-session' && tab.sessionId === input.sessionId
+      )?.isHidden === true,
     id,
     title: defaultAgentChatLabel(input.agent),
     sessionId: input.sessionId,

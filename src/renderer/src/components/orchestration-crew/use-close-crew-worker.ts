@@ -67,6 +67,23 @@ export async function closeCrewWorker(row: OrchestrationCrewRow, call: Call): Pr
   }
 }
 
+async function closeCrewWorkerWithFeedback(
+  row: OrchestrationCrewRow,
+  call: Call,
+  setClosing: (closing: boolean) => void,
+  onClosed: () => void
+): Promise<void> {
+  setClosing(true)
+  try {
+    await closeCrewWorker(row, call)
+    onClosed()
+  } catch (error) {
+    toast.error(error instanceof Error ? error.message : String(error))
+  } finally {
+    setClosing(false)
+  }
+}
+
 export function useCloseCrewWorker(row: OrchestrationCrewRow, target: RuntimeClientTarget) {
   const t = useTranslate()
   const confirm = useContext(ConfirmationDialogContext)
@@ -91,17 +108,15 @@ export function useCloseCrewWorker(row: OrchestrationCrewRow, target: RuntimeCli
       if (!accepted) {
         return
       }
-      setClosing(true)
-      try {
-        await closeCrewWorker(row, (method, params) => callRuntimeRpc(target, method, params))
-        toast.success(
-          t('components.orchestrationCrew.workerClosed', 'Closed {{name}}', { name: row.label })
-        )
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : String(error))
-      } finally {
-        setClosing(false)
-      }
+      await closeCrewWorkerWithFeedback(
+        row,
+        (method, params) => callRuntimeRpc(target, method, params),
+        setClosing,
+        () =>
+          toast.success(
+            t('components.orchestrationCrew.workerClosed', 'Closed {{name}}', { name: row.label })
+          )
+      )
     }
   }
 }

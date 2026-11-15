@@ -14,7 +14,7 @@ let folder: string
 
 beforeEach(async () => {
   stateDirectory = await mkdtemp(join(tmpdir(), 'orca-visual-read-'))
-  folder = nativeChatScratchFolderFor(stateDirectory, 'session-alpha')
+  folder = await nativeChatScratchFolderFor(stateDirectory, 'session-alpha')
   await mkdir(folder, { recursive: true })
 })
 
@@ -24,7 +24,7 @@ afterEach(async () => {
 
 describe('readNativeChatVisualFile', () => {
   posixIt('refuses a symlink to a sibling chat folder or another workspace', async () => {
-    const sibling = nativeChatScratchFolderFor(stateDirectory, 'session-beta')
+    const sibling = await nativeChatScratchFolderFor(stateDirectory, 'session-beta')
     await mkdir(sibling, { recursive: true })
     await writeFile(join(sibling, 'theirs.html'), '<p>other chat</p>')
     const worktree = join(stateDirectory, 'worktree')

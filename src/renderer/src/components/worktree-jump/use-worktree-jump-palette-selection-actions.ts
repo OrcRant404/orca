@@ -1,16 +1,11 @@
+import { useWorktreeJumpOpenTabSelection } from './use-worktree-jump-open-tab-selection'
 import { skipPaletteExitAnimation } from './worktree-jump-palette-exit-animation'
 import { useWorktreeJumpPaletteTaskSelection } from './use-worktree-jump-palette-task-selection'
 import type { WorktreeJumpPaletteTaskSearch } from './use-worktree-jump-palette-task-search'
 import { useCallback } from 'react'
 import { toast } from 'sonner'
-import { activateBrowserPagePaletteResult } from '@/lib/browser/palette/browser-page-palette-activation'
-import { activateSimulatorTabPaletteResult } from '@/lib/simulator-tab-palette-activation'
-import { activateWorkspaceTabPaletteResult } from '@/lib/workspace/search/tabs/workspace-tab-palette-activation'
 import { activateAndRevealWorkspace } from '@/lib/workspace/activation/worktree-activation'
 import { queueWorkspaceActivationTerminalFocus } from '@/lib/workspace/activation/workspace-activation-terminal-focus'
-import type { BrowserPaletteSearchResult } from '@/lib/browser/palette/browser-palette-search'
-import type { SimulatorPaletteSearchResult } from '@/lib/simulator-palette-search-types'
-import type { WorkspaceTabPaletteSearchResult } from '@/lib/workspace/search/tabs/workspace-tab-palette-results'
 import type { CmdJActionResult, CmdJSettingsResult } from '@/components/cmd-j/palette-results'
 import type { CmdJProjectSearchResult } from '@/components/cmd-j/palette-project-results'
 import { getUnavailableQuickActionMessage } from '../cmd-j/quick-action-context'
@@ -95,80 +90,12 @@ export function useWorktreeJumpPaletteSelectionActions({
     },
     [dismissForSelection, focusFallbackSurface, recordFeatureInteraction]
   )
-  const handleSelectBrowserPage = useCallback(
-    (result: BrowserPaletteSearchResult) => {
-      const activation = activateBrowserPagePaletteResult(result)
-      if (activation.status === 'blocked') {
-        return
-      }
-      if (activation.status === 'failed') {
-        toast.error(
-          activation.reason === 'missing-page'
-            ? translate(
-                'auto.components.WorktreeJumpPalette.d7d496a451',
-                'Browser page no longer exists'
-              )
-            : translate(
-                'auto.components.WorktreeJumpPalette.2c38630a01',
-                'Workspace no longer exists'
-              )
-        )
-        return
-      }
-      recordFeatureInteraction('cmd-j-browser-page-open')
-      dismissForSelection()
-      requestBrowserFocus({ pageId: activation.pageId, target: activation.focusTarget })
-    },
-    [dismissForSelection, recordFeatureInteraction, requestBrowserFocus]
-  )
-  const handleSelectSimulatorTab = useCallback(
-    (result: SimulatorPaletteSearchResult) => {
-      const activation = activateSimulatorTabPaletteResult(result)
-      if (activation.status === 'blocked') {
-        return
-      }
-      if (activation.status === 'failed') {
-        toast.error(
-          activation.reason === 'missing-tab'
-            ? translate(
-                'auto.components.WorktreeJumpPalette.7726ce9970',
-                'Mobile emulator tab no longer exists'
-              )
-            : translate(
-                'auto.components.WorktreeJumpPalette.2c38630a01',
-                'Workspace no longer exists'
-              )
-        )
-        return
-      }
-      dismissForSelection()
-    },
-    [dismissForSelection]
-  )
-  const handleSelectWorkspaceTab = useCallback(
-    (result: WorkspaceTabPaletteSearchResult) => {
-      const activation = activateWorkspaceTabPaletteResult(result)
-      if (activation.status === 'blocked') {
-        return
-      }
-      if (activation.status === 'failed') {
-        toast.error(
-          activation.reason === 'missing-worktree'
-            ? translate(
-                'auto.components.WorktreeJumpPalette.2c38630a01',
-                'Workspace no longer exists'
-              )
-            : translate(
-                'auto.components.WorktreeJumpPalette.workspaceTabMissing',
-                'Tab no longer exists'
-              )
-        )
-        return
-      }
-      dismissForSelection()
-    },
-    [dismissForSelection]
-  )
+  const { handleSelectBrowserPage, handleSelectSimulatorTab, handleSelectWorkspaceTab } =
+    useWorktreeJumpOpenTabSelection({
+      dismissForSelection,
+      recordFeatureInteraction,
+      requestBrowserFocus
+    })
   const handleSelectSettings = useCallback(
     (result: CmdJSettingsResult) => {
       const target = getSettingsTargetFromSectionId(result.sectionId)
@@ -271,11 +198,11 @@ export function useWorktreeJumpPaletteSelectionActions({
       } else if (item.type === 'project-target') {
         handleSelectProjectTarget(item.result)
       } else if (item.type === 'browser-page') {
-        handleSelectBrowserPage(item.result)
+        void handleSelectBrowserPage(item.result)
       } else if (item.type === 'simulator-tab') {
-        handleSelectSimulatorTab(item.result)
+        void handleSelectSimulatorTab(item.result)
       } else if (item.type === 'workspace-tab') {
-        handleSelectWorkspaceTab(item.result)
+        void handleSelectWorkspaceTab(item.result)
       } else if (item.type === 'task') {
         handleSelectTask(item.result)
       } else if (item.type === 'settings') {

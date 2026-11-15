@@ -58,6 +58,7 @@ export type TerminalTab = {
   customTitle: string | null
   color: string | null
   /** Pinned tabs survive "close others"; host-persisted for remote servers. */
+  isHidden?: boolean
   isPinned?: boolean
   /** Host-persisted view preference converges paired clients; older saved tabs default to terminal. */
   viewMode?: 'terminal' | 'chat'

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useEffectEvent, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -29,19 +29,21 @@ export function CrewWorkerMessagesSheet({
   const [revision, setRevision] = useState(0)
   const host = target.kind === 'local' ? 'local' : target.environmentId
   const dispatch = row.dispatchId
+  const loadMessages = useEffectEvent((signal: AbortSignal) =>
+    readCrewWorkerMessages(target, row, signal)
+  )
   useEffect(() => {
     if (!open || !dispatch) {
       return
     }
     const controller = new AbortController()
     setResult(null)
-    void readCrewWorkerMessages(target, row, controller.signal).then((value) => {
+    void loadMessages(controller.signal).then((value) => {
       if (!controller.signal.aborted) {
         setResult(value)
       }
     })
     return () => controller.abort()
-    // oxlint-disable-next-line react-hooks/exhaustive-deps -- host captures the target by value.
   }, [host, dispatch, open, revision])
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>

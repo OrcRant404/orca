@@ -338,3 +338,52 @@ it('Cmd+J keeps an ordinary editor between the existing and new terminal', async
     secondTerminal
   ])
 })
+
+it.each([
+  ['right', '/repo/a.ts', ['/repo/a.ts', '/repo/b.ts']],
+  ['left', '/repo/c.ts', ['/repo/b.ts', '/repo/c.ts']],
+  ['others', '/repo/a.ts', ['/repo/a.ts', '/repo/b.ts']]
+] as const)(
+  'preserves a hidden editor and its dirty buffer when closing %s',
+  async (scope, anchor, remaining) => {
+    seedEmptyPlacementWorkspace()
+    main = await drawEditorPlacementConsumers()
+    for (const filePath of ['/repo/a.ts', '/repo/b.ts', '/repo/c.ts']) {
+      useAppStore.getState().openFile(
+        {
+          filePath,
+          relativePath: filePath.slice(6),
+          language: 'typescript',
+          runtimeEnvironmentId: null,
+          mode: 'edit',
+          worktreeId: EDITOR_PLACEMENT
+        },
+        { executionHostId: 'local', preview: false }
+      )
+      await main.settle()
+    }
+    const hidden = useAppStore
+      .getState()
+      .unifiedTabsByWorktree[EDITOR_PLACEMENT]!.find((tab) => tab.entityId === '/repo/b.ts')!
+    await useAppStore.getState().setTabHidden(EDITOR_PLACEMENT, hidden.id, true)
+    await main.settle()
+    useAppStore.getState().setEditorDraft('/repo/b.ts', 'keep this hidden draft')
+    useAppStore.getState().markFileDirty('/repo/b.ts', true)
+    const hook = mountCloseActions()
+    act(() => {
+      if (scope === 'right') {
+        hook.result.current.handleCloseTabsToRight(anchor)
+      } else if (scope === 'left') {
+        hook.result.current.handleCloseTabsToLeft(anchor)
+      } else {
+        hook.result.current.handleCloseOthers(anchor)
+      }
+    })
+    await act(async () => main!.settle())
+    expect(
+      useAppStore.getState().unifiedTabsByWorktree[EDITOR_PLACEMENT]?.map((tab) => tab.entityId)
+    ).toEqual(remaining)
+    expect(useAppStore.getState().editorDrafts['/repo/b.ts']).toBe('keep this hidden draft')
+    expect(hook.result.current.saveDialogFileId).toBeNull()
+  }
+)

@@ -115,13 +115,14 @@ export function translateSetTabProps(
     tabId: string
     color?: string | null
     isPinned?: boolean
+    isHidden?: boolean
     viewMode?: 'terminal' | 'chat'
   }
 ): MethodTranslation {
   const target = resolveSessionTabRow(workspace, params.tabId)
-  // Preserve silent updated:true for unknown tabs.
+  // Legacy props preserve their unknown-tab no-op; visibility requires a real target.
   if (!target) {
-    return to()
+    return params.isHidden !== undefined ? refused('tab_not_found') : to()
   }
   return to({
     type: 'setTabProps',
@@ -129,6 +130,7 @@ export function translateSetTabProps(
     tabId: target.tab.id,
     ...(params.color !== undefined ? { color: params.color } : {}),
     ...(params.isPinned !== undefined ? { isPinned: params.isPinned } : {}),
+    ...(params.isHidden !== undefined ? { isHidden: params.isHidden } : {}),
     ...(params.viewMode !== undefined ? { viewMode: params.viewMode } : {})
   })
 }

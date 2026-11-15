@@ -53,6 +53,7 @@ export type WorkspaceTabPaletteSearchResult = {
   branchRanges: readonly MatchRange[]
   typeAliasMatch?: { text: string; ranges: readonly MatchRange[] } | null
   typeAliasMatches: readonly { text: string; ranges: readonly MatchRange[] }[]
+  isHidden?: boolean
   isCurrentTab: boolean
   isCurrentWorktree: boolean
   score: number
@@ -119,6 +120,7 @@ function baseResult(
       entry.tab.id
     ]),
     tabId: entry.tab.id,
+    isHidden: entry.tab.isHidden === true,
     entityId: entry.tab.entityId,
     worktreeId: entry.worktree.id,
     groupId: entry.tab.groupId,

@@ -28,7 +28,11 @@ export function restoreActiveTabIdByWorktree({
       }
       // Follow subsumed rows to the canonical twin holding their PTY so workspace focus survives.
       const restored = validTabIds.has(tabId) ? tabId : canonicalTabIdBySubsumedTabId.get(tabId)
-      if (restored && validTabIds.has(restored)) {
+      if (
+        restored &&
+        validTabIds.has(restored) &&
+        !tabsByWorktree[wId]?.find((tab) => tab.id === restored)?.isHidden
+      ) {
         activeTabIdByWorktree[wId] = restored
       }
     }
@@ -39,7 +43,7 @@ export function restoreActiveTabIdByWorktree({
     }
     for (const [wId, tabs] of Object.entries(tabsByWorktree)) {
       if (!activeTabIdByWorktree[wId] && tabs.length > 0) {
-        activeTabIdByWorktree[wId] = tabs[0].id
+        activeTabIdByWorktree[wId] = tabs.find((tab) => !tab.isHidden)?.id ?? null
       }
     }
   }

@@ -1,3 +1,5 @@
+import { reorderProjectedTabOrder } from '../../../../../shared/workspace-layout/tab-order'
+import { visibleActiveTabId } from '../../../../../shared/workspace-layout/tab-visibility'
 import type { RuntimeCapability } from '../../../../../shared/protocol-version'
 import '../../../../../shared/protocol-version'
 import { BROWSER_CLIENT_HOST_RUNTIME_CAPABILITY } from '../../../../../shared/browser-runtime-capabilities'
@@ -39,11 +41,10 @@ export function withoutSessionTabs(
   removedIds: ReadonlySet<string>
 ): RuntimeMobileSessionTabsResult {
   const retainedTabs = payload.tabs.filter((tab) => !removedIds.has(tab.id))
-  const active = selectProjectedActiveTab(payload.activeTabId, retainedTabs)
-  const tabs = retainedTabs.map((tab) => ({ ...tab, isActive: tab.id === active?.id }))
-  const tabGroups = projectTabGroups(payload.tabGroups, removedIds)
+  const tabGroups = projectTabGroups(payload.tabGroups, removedIds, retainedTabs)
   const groupIds = new Set(tabGroups?.map((group) => group.id) ?? [])
-  const activeTopLevelId = active ? topLevelTabId(active) : null
+  const previousActive = payload.tabs.find((tab) => tab.id === payload.activeTabId)
+  const activeTopLevelId = previousActive ? topLevelTabId(previousActive) : null
   const activeGroupId =
     payload.activeGroupId && groupIds.has(payload.activeGroupId)
       ? payload.activeGroupId
@@ -52,6 +53,12 @@ export function withoutSessionTabs(
         )?.id ??
         tabGroups?.[0]?.id ??
         null)
+  const active = selectProjectedActiveTab(
+    payload.activeTabId,
+    retainedTabs,
+    tabGroups?.find((group) => group.id === activeGroupId)
+  )
+  const tabs = retainedTabs.map((tab) => ({ ...tab, isActive: tab.id === active?.id }))
   return {
     ...payload,
     activeGroupId,
@@ -100,14 +107,39 @@ export function translateProjectedSessionTabMove(
         : { index: translateProjectedInsertionIndex(rawTarget, visibleTarget, move.index) })
     }
   }
-  assertExactVisibleOrder(visibleTarget.tabOrder, move.tabOrder)
+  let requestedOrder = move.tabOrder
+  const omittedHidden = new Set(
+    projected.tabs.flatMap((tab) =>
+      tab.isHidden
+        ? [topLevelTabId(tab), ...(tab.type === 'browser' ? [tab.browserWorkspaceId] : [])]
+        : []
+    )
+  )
+  if (visibleTarget.tabOrder.some((id) => omittedHidden.has(id) && !requestedOrder.includes(id))) {
+    const requestedIds = new Set(requestedOrder)
+    const membership = visibleTarget.tabOrder.filter(
+      (id) => requestedIds.has(id) || omittedHidden.has(id)
+    )
+    assertExactVisibleOrder(
+      membership.filter((id) => !omittedHidden.has(id)),
+      requestedOrder.filter((id) => !omittedHidden.has(id))
+    )
+    if (
+      requestedIds.size !== requestedOrder.length ||
+      requestedOrder.some((id) => !visibleTarget.tabOrder.includes(id))
+    ) {
+      throw new Error('invalid_tab_order')
+    }
+    requestedOrder = reorderProjectedTabOrder(membership, requestedOrder, tabId)
+  }
+  assertExactVisibleOrder(visibleTarget.tabOrder, requestedOrder)
   const visibleIds = new Set(visibleTarget.tabOrder)
   let visibleIndex = 0
   const tabOrder = rawTarget.tabOrder.map((rawTabId) => {
     if (!visibleIds.has(rawTabId)) {
       return rawTabId
     }
-    const next = move.tabOrder[visibleIndex]
+    const next = requestedOrder[visibleIndex]
     visibleIndex += 1
     return next!
   })
@@ -155,10 +187,26 @@ function assertExactVisibleOrder(current: readonly string[], requested: readonly
 
 function selectProjectedActiveTab(
   activeTabId: string | null,
-  tabs: readonly RuntimeMobileSessionClientTab[]
+  tabs: readonly RuntimeMobileSessionClientTab[],
+  group: RuntimeMobileSessionTabGroup | undefined
 ): RuntimeMobileSessionClientTab | null {
+  if (activeTabId === null || group?.activeTabId === null) {
+    return null
+  }
+  tabs = tabs.filter(
+    (tab) =>
+      !tab.isHidden &&
+      (!group ||
+        group.tabOrder.includes(topLevelTabId(tab)) ||
+        (tab.type === 'browser' && group.tabOrder.includes(tab.browserWorkspaceId)))
+  )
   return (
     tabs.find((tab) => tab.id === activeTabId) ??
+    tabs.find(
+      (tab) =>
+        topLevelTabId(tab) === group?.activeTabId ||
+        (tab.type === 'browser' && tab.browserWorkspaceId === group?.activeTabId)
+    ) ??
     tabs.find((tab) => tab.isActive) ??
     tabs[0] ??
     null
@@ -171,8 +219,13 @@ function topLevelTabId(tab: RuntimeMobileSessionClientTab): string {
 
 function projectTabGroups(
   groups: readonly RuntimeMobileSessionTabGroup[] | undefined,
-  removedIds: ReadonlySet<string>
+  removedIds: ReadonlySet<string>,
+  tabs: readonly RuntimeMobileSessionClientTab[]
 ): RuntimeMobileSessionTabGroup[] | undefined {
+  const candidates = tabs.flatMap((tab) => [
+    { id: topLevelTabId(tab), isHidden: tab.isHidden },
+    ...(tab.type === 'browser' ? [{ id: tab.browserWorkspaceId, isHidden: tab.isHidden }] : [])
+  ])
   const projected = groups
     ?.map((group): RuntimeMobileSessionTabGroup | null => {
       const tabOrder = group.tabOrder.filter((id) => !removedIds.has(id))
@@ -181,10 +234,12 @@ function projectTabGroups(
       }
       return {
         ...group,
-        activeTabId:
-          group.activeTabId && tabOrder.includes(group.activeTabId)
-            ? group.activeTabId
-            : (tabOrder[0] ?? null),
+        activeTabId: visibleActiveTabId(
+          group.tabOrder,
+          group.recentTabIds,
+          group.activeTabId,
+          candidates
+        ),
         tabOrder,
         ...(group.recentTabIds
           ? { recentTabIds: group.recentTabIds.filter((id) => tabOrder.includes(id)) }

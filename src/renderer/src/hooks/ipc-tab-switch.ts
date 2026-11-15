@@ -132,7 +132,7 @@ export function handleSwitchTabAcrossAllTypes(direction: number): boolean {
 function getWorktreeTerminalTabOrder(store: AppStoreState, worktreeId: string): TypeCyclableTab[] {
   const runtimeTabs = store.tabsByWorktree?.[worktreeId] ?? []
   const unifiedTerminalTabs = (store.unifiedTabsByWorktree?.[worktreeId] ?? []).filter(
-    (tab) => tab.contentType === 'terminal'
+    (tab) => tab.contentType === 'terminal' && !tab.isHidden
   )
   const activeGroupId = store.activeGroupIdByWorktree?.[worktreeId]
   const unifiedByEntity = new Map<string, typeof unifiedTerminalTabs>()
@@ -160,7 +160,14 @@ function getWorktreeTerminalTabOrder(store: AppStoreState, worktreeId: string): 
   const result: TypeCyclableTab[] = []
   const seenEntityIds = new Set<string>()
   for (const tab of runtimeTabs) {
-    if (seenEntityIds.has(tab.id)) {
+    const matches = (store.unifiedTabsByWorktree?.[worktreeId] ?? []).filter(
+      (item) => item.contentType === 'terminal' && item.entityId === tab.id
+    )
+    if (
+      tab.isHidden ||
+      (matches.length > 0 && matches.every((item) => item.isHidden)) ||
+      seenEntityIds.has(tab.id)
+    ) {
       continue
     }
     seenEntityIds.add(tab.id)
@@ -200,7 +207,7 @@ function shouldUseWorktreeTerminalFallback(
   }
 
   const unifiedTerminalTabs = (store.unifiedTabsByWorktree?.[worktreeId] ?? []).filter(
-    (tab) => tab.contentType === 'terminal'
+    (tab) => tab.contentType === 'terminal' && !tab.isHidden
   )
   if (unifiedTerminalTabs.length === 0) {
     return true

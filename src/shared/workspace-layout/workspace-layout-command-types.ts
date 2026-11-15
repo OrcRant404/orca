@@ -122,6 +122,7 @@ export type LayoutCommand =
       type: 'setTabProps'
       tabId: string
       color?: string | null
+      isHidden?: boolean
       isPinned?: boolean
       viewMode?: 'terminal' | 'chat'
       /** The tab's agent launched and ended: a restore must not launch it again. */

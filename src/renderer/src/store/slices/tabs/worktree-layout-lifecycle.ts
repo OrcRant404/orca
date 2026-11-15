@@ -1,3 +1,4 @@
+import { visibleActiveTabId } from '../../../../../shared/workspace-layout/tab-visibility'
 import {
   retirePendingWorkspaceTabs,
   hasPendingEntityTab
@@ -133,10 +134,12 @@ export function removeWorktreeLayout(
               ...group,
               tabOrder,
               recentTabIds: group.recentTabIds?.filter((id) => !removedPlacementIds.has(id)),
-              activeTabId:
-                group.activeTabId && !removedPlacementIds.has(group.activeTabId)
-                  ? group.activeTabId
-                  : (tabOrder[0] ?? null)
+              activeTabId: visibleActiveTabId(
+                tabOrder,
+                group.recentTabIds,
+                group.activeTabId,
+                unifiedTabs[id] ?? []
+              )
             }
           })
         : groups

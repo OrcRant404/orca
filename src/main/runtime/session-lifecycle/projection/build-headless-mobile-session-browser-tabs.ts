@@ -70,8 +70,7 @@ export abstract class OrcaRuntimeWithBuildHeadlessMobileSessionBrowserTabs exten
         faviconUrl: this.agentBrowserBridge?.getRemoteTabFaviconUrl(tab.browserPageId) ?? null,
         loadError: tab.loadError ?? undefined,
         certificateFailure: tab.certificateFailure ?? undefined,
-        ...(persistedProps ? { color: persistedProps.color } : {}),
-        ...(persistedProps ? { isPinned: persistedProps.isPinned === true } : {}),
+        ...persistedProps,
         isActive: tab.active === true
       }
     })
@@ -79,6 +78,7 @@ export abstract class OrcaRuntimeWithBuildHeadlessMobileSessionBrowserTabs exten
       .listPages(worktreeId)
       .map((page) => ({
         type: 'browser' as const,
+        ...this.getPersistedUnifiedSessionTabProps(worktreeId, page.browserPageId),
         id: page.browserPageId,
         title: page.title || page.url || 'Browser',
         browserWorkspaceId: page.browserPageId,
@@ -98,12 +98,13 @@ export abstract class OrcaRuntimeWithBuildHeadlessMobileSessionBrowserTabs exten
   protected getPersistedUnifiedSessionTabProps(
     worktreeId: string,
     tabId: string
-  ): Pick<Tab, 'color' | 'isPinned'> | null {
-    const tab =
-      this.getWorkspaceSessionForWorktree(worktreeId)?.unifiedTabs?.[worktreeId]?.find(
-        (candidate) => candidate.id === tabId || candidate.entityId === tabId
-      ) ?? null
-    return tab ? { color: tab.color, isPinned: tab.isPinned } : null
+  ): Pick<Tab, 'color' | 'isPinned' | 'isHidden'> | null {
+    const tab = this.getWorkspaceSessionForWorktree(worktreeId)?.unifiedTabs?.[worktreeId]?.find(
+      (candidate) => candidate.id === tabId || candidate.entityId === tabId
+    )
+    return tab
+      ? { color: tab.color, isPinned: tab.isPinned === true, isHidden: tab.isHidden === true }
+      : null
   }
 
   protected captureTerminalTabRetirement(worktreeId: string, tabId: string) {

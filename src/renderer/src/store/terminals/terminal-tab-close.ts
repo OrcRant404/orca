@@ -160,7 +160,7 @@ export function createTerminalTabCloseActions(
             if (nextActiveTabIdByWorktree === s.activeTabIdByWorktree) {
               nextActiveTabIdByWorktree = { ...s.activeTabIdByWorktree }
             }
-            nextActiveTabIdByWorktree[wId] = tabs[0]?.id ?? null
+            nextActiveTabIdByWorktree[wId] = tabs.find((tab) => !tab.isHidden)?.id ?? null
           }
           // Why: keep tabBarOrderByWorktree in sync so stale terminal IDs don't linger and shift positions on later tab operations.
           let nextTabBarOrderByWorktree: Record<string, string[]> = s.tabBarOrderByWorktree

@@ -123,7 +123,7 @@ it('keeps pristine, edited and reopened historical-host picker launches free of 
   await act(async () => {})
   async function start() {
     mockCreateWebRuntimeSessionTerminal.mockClear()
-    fireEvent.click(view.getByText('Launch terminal'))
+    fireEvent.click(view.getByText('Use terminal'))
     await act(async () => {})
     const request = mockCreateWebRuntimeSessionTerminal.mock.calls[0]?.[0]
     expect(request).toBeDefined()

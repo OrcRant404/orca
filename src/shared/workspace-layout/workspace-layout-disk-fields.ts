@@ -110,6 +110,7 @@ const SHARED_TAB_FIELDS = {
   aiVaultTitle: tab('aiVaultTitle'),
   quickCommandLabel: tab('quickCommandLabel'),
   isPinned: tab('isPinned'),
+  isHidden: tab('isHidden'),
   viewMode: tab('viewMode')
 } as const
 

@@ -58,7 +58,7 @@ export function useMobileSessionBulkClose(scope: MobileSessionCloseActionsModel)
   })
   const closeWithBulkActions = createCloseWithBulkActions(handleCloseSessionTab, bulkCloseActions)
 
-  const visibleTabs: MobileSessionTab[] = sessionTabs
+  const visibleTabs: MobileSessionTab[] = sessionTabs.filter((tab) => !tab.isHidden)
   const activeMarkdownTab = activeSessionTab?.type === 'markdown' ? activeSessionTab : null
   const activeFileTab = activeSessionTab?.type === 'file' ? activeSessionTab : null
   const activeBrowserTab = activeSessionTab?.type === 'browser' ? activeSessionTab : null

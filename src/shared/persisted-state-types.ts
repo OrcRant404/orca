@@ -47,7 +47,7 @@ export type LegacyPaneKeyAliasEntry = {
 export type PersistedMobileClientTabSelection = {
   activeTabId: string | null
   activeGroupId: string | null
-  activeTabIdByGroupId: Readonly<Record<string, string>>
+  activeTabIdByGroupId: Readonly<Record<string, string | null>>
   /** Top-level tabs the client showed, most recent last. */
   recentTabIds?: string[]
 }

@@ -8,6 +8,7 @@ import {
   recordWebSessionCloseIntent
 } from '../closing/web-session-close-intent'
 import { recordWebSessionReorderIntent } from './web-session-reorder-intent'
+import { recordWebSessionFocusIntent } from './web-session-focus-intent'
 
 import { acceptReplayedWebSessionTabsSnapshot, type WebSessionTabsSyncState } from '../state'
 import { applyFreshWebSessionTabsSnapshot, applyWebSessionTabsSnapshot } from '../snapshot-api'
@@ -40,6 +41,70 @@ vi.mock('@/hooks/agent-hook-completion-notifications', () => ({
 }))
 describe('applyWebSessionTabsSnapshot', () => {
   beforeEach(resetWebSessionTabsSyncTestState)
+
+  it('keeps unhide-only unselected across later publications until this client explicitly activates', () => {
+    let state = makeState()
+    const publish = (version: number, isHidden: boolean, isActive: boolean, title: string) => {
+      state = {
+        ...state,
+        ...applyWebSessionTabsSnapshot(
+          state,
+          makeSnapshot(
+            [
+              {
+                type: 'terminal',
+                id: 'host-tab-1::11111111-1111-4111-8111-111111111111',
+                parentTabId: 'host-tab-1',
+                leafId: LEAF_ID,
+                title,
+                terminal: 'term_host',
+                status: 'ready',
+                isHidden,
+                isActive
+              }
+            ],
+            {
+              snapshotVersion: version,
+              tabGroups: [
+                {
+                  id: 'host-group-1',
+                  activeTabId: isActive ? 'host-tab-1' : null,
+                  tabOrder: ['host-tab-1']
+                }
+              ]
+            }
+          ),
+          ENV,
+          NOW + version
+        )
+      }
+    }
+
+    publish(1, false, true, 'Terminal')
+    expect(state.groupsByWorktree[WT]?.[0]?.activeTabId).toBe('web-terminal-host-tab-1')
+    publish(2, true, false, 'Terminal')
+    expect(state.groupsByWorktree[WT]?.[0]?.activeTabId).toBeNull()
+
+    publish(3, false, false, 'Terminal')
+    expect(state.groupsByWorktree[WT]?.[0]?.activeTabId).toBeNull()
+    expect(state.activeTabId).toBeNull()
+    expect(state.activeTabIdByWorktree[WT]).toBeNull()
+
+    publish(4, false, false, 'Updated by host')
+    expect(state.groupsByWorktree[WT]?.[0]?.activeTabId).toBeNull()
+    expect(state.activeTabId).toBeNull()
+    expect(state.activeTabIdByWorktree[WT]).toBeNull()
+    expect(state.groupsByWorktree[WT]?.[0]?.tabOrder).toEqual(['web-terminal-host-tab-1'])
+    expect(state.unifiedTabsByWorktree[WT]?.map((tab) => tab.id)).toEqual([
+      'web-terminal-host-tab-1'
+    ])
+
+    recordWebSessionFocusIntent({ environmentId: ENV }, WT, 'host-tab-1')
+    publish(5, false, false, 'Updated by host')
+    expect(state.groupsByWorktree[WT]?.[0]?.activeTabId).toBe('web-terminal-host-tab-1')
+    expect(state.activeTabId).toBe('web-terminal-host-tab-1')
+    expect(state.activeTabIdByWorktree[WT]).toBe('web-terminal-host-tab-1')
+  })
 
   it('suppresses a tab the client is closing until the host confirms removal (no close flash)', () => {
     const surface = {

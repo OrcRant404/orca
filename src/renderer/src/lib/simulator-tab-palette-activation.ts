@@ -64,3 +64,27 @@ export function activateSimulatorTabPaletteResult({
   state.setActiveTabType('simulator', worktreeId)
   return { status: 'activated', tabId: tab.id }
 }
+
+export async function unhideAndActivateSimulatorTabPaletteResult(
+  result: SimulatorTabPaletteActivationTarget
+): Promise<SimulatorTabPaletteActivationResult> {
+  const state = useAppStore.getState()
+  const worktree = state.getKnownWorktreeById(result.worktreeId, result.executionHostId)
+  if (!worktree) {
+    return { status: 'failed', reason: 'missing-worktree' }
+  }
+  const tab = state.unifiedTabsByWorktree[result.worktreeId]?.find(
+    (entry) => entry.id === result.tabId && entry.contentType === 'simulator'
+  )
+  const ambiguous = findAmbiguousWorktreeIds(getPaletteOwnershipWorktreeIds(state))
+  if (
+    !tab ||
+    (!result.executionHostId && ambiguous.has(result.worktreeId)) ||
+    !isUnifiedTabOwnedByWorktree(tab, worktree, ambiguous)
+  ) {
+    return { status: 'failed', reason: 'missing-tab' }
+  }
+  const { unhideTabForActivation } = await import('@/store/slices/tabs/tabs-visibility-actions')
+  await unhideTabForActivation(result.worktreeId, result.tabId)
+  return activateSimulatorTabPaletteResult(result)
+}

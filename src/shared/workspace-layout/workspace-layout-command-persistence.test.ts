@@ -178,3 +178,41 @@ describe('preview replacement', () => {
     expect(clean.model.workspaces[WS]!.tabs.map((tab) => tab.entityId)).toEqual(['/w/b.ts'])
   })
 })
+
+it('saves hidden tabs without changing their membership, pane bindings or order, and restores them', () => {
+  const loaded = reload(localDesktopSession())
+  const before = loaded.layout.workspaces[GIT_KEY]!
+  const hidden = build(
+    testContext(),
+    [{ type: 'setTabProps', workspace: GIT_KEY, tabId: 'tab-shell', isHidden: true }],
+    loaded.layout
+  ).model
+  const saved = save(hidden)
+  expect(saved.unifiedTabs![GIT_KEY]!.find((tab) => tab.id === 'tab-shell')?.isHidden).toBe(true)
+  expect(saved.tabsByWorktree[GIT_KEY]!.find((tab) => tab.id === 'tab-shell')?.isHidden).toBe(true)
+  const restored = reload(saved).layout
+  const workspace = restored.workspaces[GIT_KEY]!
+  expect(workspace.groups).toEqual(before.groups)
+  expect(workspace.groupLayout).toEqual(before.groupLayout)
+  expect(workspace.leaves).toEqual(before.leaves)
+  expect(workspace.tabs.map((tab) => tab.id)).toEqual([
+    'tab-shell',
+    'tab-agent',
+    'editor:src/app.ts',
+    'browser-1',
+    'agent-session-1',
+    'tab-unbound'
+  ])
+  const visible = build(
+    testContext(),
+    [{ type: 'setTabProps', workspace: GIT_KEY, tabId: 'tab-shell', isHidden: false }],
+    restored
+  ).model
+  const reopened = reload(save(visible)).layout.workspaces[GIT_KEY]!
+  expect(reopened.groups).toEqual(before.groups)
+  expect(reopened.leaves).toEqual(before.leaves)
+  expect(reopened.tabs.find((tab) => tab.id === 'tab-shell')).toEqual({
+    ...before.tabs.find((tab) => tab.id === 'tab-shell')!,
+    isHidden: false
+  })
+})

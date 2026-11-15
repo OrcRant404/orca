@@ -5,9 +5,8 @@ import type { TabsSlice, TabsSliceGet, TabsSliceSet } from './tabs-slice-contrac
 import { findTabAndWorktree, patchTab, updateGroup } from './tab-group-state'
 import {
   applyTabOrderSortValues,
-  dedupeTabOrder,
   partitionPinnedTabOrder,
-  reorderProjectedTabOrder
+  reorderTabOrderPreservingHidden
 } from '../../../../../shared/workspace-layout/tab-order'
 import {
   mirrorTabPinnedToHost,
@@ -169,9 +168,12 @@ export function createTabsLabelActions(
             continue
           }
           // Projected orders own placement; only complete local orders own membership.
-          const nextTabOrder = opts?.projectedMoveTabId
-            ? reorderProjectedTabOrder(group.tabOrder, tabIds, opts.projectedMoveTabId)
-            : dedupeTabOrder(tabIds)
+          const nextTabOrder = reorderTabOrderPreservingHidden(
+            group.tabOrder,
+            tabIds,
+            state.unifiedTabsByWorktree[worktreeId] ?? [],
+            opts?.projectedMoveTabId
+          )
           if (nextTabOrder === group.tabOrder) {
             return state
           }

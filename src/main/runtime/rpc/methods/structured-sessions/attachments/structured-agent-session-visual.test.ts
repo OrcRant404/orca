@@ -65,7 +65,7 @@ afterEach(async () => {
 })
 
 async function writeVisual(name: string, html: string): Promise<void> {
-  const folder = nativeChatScratchFolderFor(stateDirectory, SESSION)
+  const folder = await nativeChatScratchFolderFor(stateDirectory, SESSION)
   await mkdir(folder, { recursive: true })
   await writeFile(join(folder, name), html)
 }
@@ -73,9 +73,9 @@ async function writeVisual(name: string, html: string): Promise<void> {
 describe('agentSession.readVisual', () => {
   it('serves the folder a visual names as a file root, and nothing outside it', async () => {
     await writeVisual('chart.html', 'a')
-    const folder = nativeChatScratchFolderFor(stateDirectory, SESSION)
+    const folder = await nativeChatScratchFolderFor(stateDirectory, SESSION)
     // Same suffix but inside the authorized root, so only the selector's exact match refuses it.
-    const foreign = nativeChatScratchFolderFor(join(folder, 'nested'), SESSION)
+    const foreign = await nativeChatScratchFolderFor(join(folder, 'nested'), SESSION)
     await Promise.all([mkdir(foreign, { recursive: true }), mkdir(join(stateDirectory, 'out'))])
     await writeFile(join(foreign, 'x.html'), 'x')
     await writeFile(join(stateDirectory, 'out', 'x.html'), 'x')

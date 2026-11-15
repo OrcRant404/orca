@@ -79,7 +79,7 @@ function getFloatingWorkspaceVisibleTabs(
   group: TabGroup
 ): TypeCyclableTab[] {
   const groupTabs = (store.unifiedTabsByWorktree[FLOATING_TERMINAL_WORKTREE_ID] ?? []).filter(
-    (tab) => tab.groupId === group.id
+    (tab) => tab.groupId === group.id && !tab.isHidden
   )
   return getGroupVisibleTabOrder(
     group,

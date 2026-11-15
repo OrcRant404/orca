@@ -1,6 +1,7 @@
 type SessionTabLike = {
   id: string
   isActive: boolean
+  isHidden?: boolean
 }
 
 export type ActiveSessionTabSelectionSource =
@@ -22,9 +23,27 @@ export function resolveActiveSessionTab<T extends SessionTabLike>(
     pendingActiveSessionTabId: string | null
     selectedSessionTabId: string | null
     navigationIntent?: 'follow'
+    snapshot?: {
+      activeTabId?: string | null
+      activeGroupId?: string | null
+      tabGroups?: readonly { id: string; activeTabId: string | null }[]
+    }
   }
 ): ResolveActiveSessionTabResult<T> {
-  const snapshotActive = tabs.find((tab) => tab.isActive) ?? tabs[0] ?? null
+  const inventory = tabs
+  tabs = tabs.filter((tab) => !tab.isHidden)
+  const snapshot = opts.snapshot
+  const activeGroup = snapshot?.tabGroups?.find((group) => group.id === snapshot.activeGroupId)
+  const selectionDeclared =
+    snapshot?.activeTabId !== undefined ||
+    snapshot?.activeGroupId !== undefined ||
+    activeGroup?.activeTabId !== undefined
+  const snapshotActive =
+    snapshot?.activeTabId === null || activeGroup?.activeTabId === null
+      ? null
+      : (tabs.find((tab) => tab.id === snapshot?.activeTabId) ??
+        tabs.find((tab) => tab.isActive) ??
+        (selectionDeclared ? null : (tabs[0] ?? null)))
   const pendingActiveSessionTabId = opts.pendingActiveSessionTabId
   // Why: targeted follow is the only host action allowed to supersede phone-local intent.
   if (opts.navigationIntent === 'follow') {
@@ -63,6 +82,9 @@ export function resolveActiveSessionTab<T extends SessionTabLike>(
     selectionSource: selectedTab ? 'selected-tab' : 'snapshot',
     clearPendingActiveSessionTabId,
     // Why: transient browser guest swaps must not erase the device's explicit pick.
-    retainSelectedSessionTabId: Boolean(opts.selectedSessionTabId) && !selectedTab
+    retainSelectedSessionTabId:
+      Boolean(opts.selectedSessionTabId) &&
+      !selectedTab &&
+      !inventory.some((tab) => tab.id === opts.selectedSessionTabId && tab.isHidden)
   }
 }

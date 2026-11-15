@@ -20486,7 +20486,8 @@
         "senderReplaced": "{{name}} is no longer running in its terminal; another agent is running there now. Open that terminal from the sidebar if you need it.",
         "senderAmbiguous": "Orca can't tell which terminal {{name}} is running in. Open it from the sidebar.",
         "senderNotRunning": "{{name}} is no longer running. Start a new agent from the sidebar to continue its work.",
-        "unnamedSenderSubject": "An agent"
+        "unnamedSenderSubject": "An agent",
+        "launching": "Launching"
       },
       "goal": {
         "placeholder": "Describe your goal, define measurable outcomes for best results",
@@ -20801,7 +20802,8 @@
         "commandDescription": "Fork this chat from its latest response",
         "commandWorking": "Wait for the response to finish, then fork.",
         "commandNothing": "There’s no response to fork yet.",
-        "commandTakesNoText": "Send /fork on its own, then write in the new chat."
+        "commandTakesNoText": "Send /fork on its own, then write in the new chat.",
+        "contextUnavailable": "This turn could not be prepared for a fork. Reopen the chat and try again."
       },
       "usage": {
         "description": "Show usage for this chat’s Codex account",
@@ -21203,7 +21205,13 @@
       "deliveryFailed": "The new {{agent}} session started, but its context could not be sent.",
       "deliveryUnconfirmed": "Orca could not confirm {{agent}} received the session context. Check the new session, and paste it yourself if its input is empty.",
       "copyPrompt": "Copy prompt",
-      "launchFailed": "Could not start a new {{agent}} session."
+      "launchFailed": "Could not start a new {{agent}} session.",
+      "forkRecent": "Recent context through this turn",
+      "forkFull": "Conversation through this turn (Recommended)",
+      "forkContextDescription": "Copies conversation context through this completed turn. Workspace files stay in their current state. The new agent waits for your next instruction.",
+      "forkTitle": "Fork Chat from This Turn",
+      "forkDescription": "Start an independent chat with context through the selected turn. Later messages are excluded. Your original chat stays unchanged.",
+      "createFork": "Create Fork"
     },
     "status": {
       "bar": {
@@ -21471,8 +21479,6 @@
       "sendingUnavailable": "Sending unavailable",
       "workers_one": "{{count}} worker",
       "workers_other": "{{count}} workers",
-      "managedBy": "Managed by",
-      "managing": "Managing",
       "talkingWith": "Talking with",
       "collapse": "Collapse orchestration panel",
       "show": "Show orchestration: {{counts}}",
@@ -21496,7 +21502,33 @@
       "cannotLocate": "This host cannot locate this agent. Try again.",
       "latest": "Latest",
       "to": "To",
-      "from": "From"
+      "from": "From",
+      "openOutput": "View worker output",
+      "openTerminal": "Open terminal",
+      "viewMessages": "View worker messages",
+      "stopping": "Stopping…",
+      "closeWorker": "Stop and close worker",
+      "keptForReuse": "Kept for reuse",
+      "workerMessages": "Worker messages and output",
+      "loadingMessages": "Loading worker messages…",
+      "noOutput": "No output recorded yet.",
+      "outputUnavailable": "The full worker output is unavailable. Saved coordination messages are shown below.",
+      "coordinationMessages": "Coordination messages",
+      "noMessages": "No coordination messages were saved for this worker.",
+      "refreshMessages": "Refresh output",
+      "failedTeam": "The team panel could not load.",
+      "closeTeam": "Close team panel",
+      "leadSection": "Lead",
+      "workersSection": "Workers",
+      "team": "Team",
+      "emptyTeam": "No workers yet. Ask the lead to delegate a task; workers will appear here.",
+      "unavailableTeam": "Team status is not available yet. Close and reopen the panel to retry.",
+      "workerRole": "Worker",
+      "leadRole": "Lead",
+      "stopTitle": "Stop and close {{name}}?",
+      "stopDescription": "This interrupts any ongoing work and removes this worker from the team. Saved chat history remains available.",
+      "stopConfirm": "Stop and close",
+      "workerClosed": "Closed {{name}}"
     },
     "orchestration": {
       "workerAutoClose": {
@@ -23935,7 +23967,9 @@
     "use": "Use",
     "select": "Select agent",
     "promptPlaceholder": "Add a prompt (optional): / for skills, @ for files",
-    "promptPlaceholderFilesOnly": "Add a prompt (optional): @ for files"
+    "promptPlaceholderFilesOnly": "Add a prompt (optional): @ for files",
+    "useChat": "Use chat",
+    "useTerminal": "Use terminal"
   },
   "automations": {
     "runFailures": {
@@ -24438,5 +24472,22 @@
     "stopped": "{{host}} stopped controlling browser tabs until Orca restarts.",
     "disallowed": "{{host}} can no longer control browser tabs. Turn it back on in Settings > SSH.",
     "failed": "Couldn’t stop {{host}}. Turn off its browser control in Settings > SSH."
+  },
+  "tabs": {
+    "hidden": {
+      "indicator": "Hidden",
+      "allHidden": "All tabs in this group are hidden",
+      "chooseTab": "Choose a tab to continue",
+      "newTab": "New tab",
+      "title": "Hidden tabs",
+      "unhideAll": "Unhide all",
+      "search": "Search hidden tabs…",
+      "empty": "No hidden tabs",
+      "unhide": "Unhide",
+      "unsupported": "Update the execution host to manage hidden tabs.",
+      "waiting": "Waiting for the host…",
+      "hiding": "Hiding tab…",
+      "hideTab": "Hide tab"
+    }
   }
 }

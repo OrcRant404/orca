@@ -27,6 +27,7 @@ function contentFields(entry: Tab) {
       'aiVaultTitle',
       'quickCommandLabel',
       'isPinned',
+      'isHidden',
       'viewMode',
       'isPreview',
       'agentSessionAgent'
@@ -41,7 +42,7 @@ export function loadContentTab(
   return { ...contentFields(entry), kind: entry.contentType }
 }
 
-/** Where both records name a field, the row wins: every runtime writer updates the row. */
+/** Runtime fields come from the row; visibility belongs to the unified tab when present. */
 export function loadTerminalTab(
   row: TerminalTab,
   entry: Tab | undefined
@@ -58,6 +59,7 @@ export function loadTerminalTab(
       'viewMode',
       'generatedTitle'
     ]),
+    ...(!entry && row.isHidden !== undefined ? { isHidden: row.isHidden } : {}),
     createdAt: row.createdAt,
     customTitle: row.customTitle,
     color: row.color,

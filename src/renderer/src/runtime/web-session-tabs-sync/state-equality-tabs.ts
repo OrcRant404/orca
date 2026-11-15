@@ -26,6 +26,7 @@ export function terminalTabEqual(a: TerminalTab, b: TerminalTab): boolean {
     a.sessionTitleFromHost === b.sessionTitleFromHost &&
     a.customTitle === b.customTitle &&
     a.color === b.color &&
+    (a.isHidden ?? false) === (b.isHidden ?? false) &&
     a.sortOrder === b.sortOrder &&
     a.createdAt === b.createdAt &&
     a.generation === b.generation &&

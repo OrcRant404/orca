@@ -23,6 +23,20 @@ import { resolveWindowTabIdForHostTab } from './host-session-tab-target'
 import { moveTerminalPaneToNewTabForClient } from '@/components/terminal-pane/layout/detach/terminal-pane-move-request-routing'
 
 export function registerSessionTabIpcBridge(unsubs: (() => void)[]): void {
+  if (window.api.ui.onSetSessionTabHidden) {
+    unsubs.push(
+      window.api.ui.onSetSessionTabHidden(({ worktreeId, tabId, isHidden }) => {
+        const localTabId = resolveWindowTabIdForHostTab(worktreeId, tabId)
+        const state = useAppStore.getState()
+        const tab = state.unifiedTabsByWorktree[worktreeId]?.find(
+          (candidate) => candidate.id === localTabId || candidate.entityId === localTabId
+        )
+        if (tab) {
+          state.applyTabHidden(worktreeId, tab.id, isHidden)
+        }
+      })
+    )
+  }
   unsubs.push(
     window.api.ui.onCloseSessionTab(({ tabId, worktreeId }) => {
       if (isLocalSessionTabCloseOwned(worktreeId, tabId)) {

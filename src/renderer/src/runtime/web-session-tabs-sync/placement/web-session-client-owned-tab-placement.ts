@@ -204,9 +204,11 @@ export function reconcileClientOwnedTabPlacement(
         ? (pickNextActiveTab(repairOrder, group.recentTabIds, displacedActive) ??
           realOrder[0] ??
           null)
-        : (group.activeTabId ?? realOrder[0] ?? null))
+        : group.activeTabId === null && group.tabOrder.length > 0
+          ? null
+          : (group.activeTabId ?? realOrder[0] ?? null))
     const validActiveTabId =
-      activeTabId && realOrder.includes(activeTabId) ? activeTabId : (realOrder[0] ?? null)
+      activeTabId === null || realOrder.includes(activeTabId) ? activeTabId : (realOrder[0] ?? null)
     const sanitizedRecent = sanitizeRecentTabIds(group.recentTabIds, realOrder)
     // Only explicit intent or close/move succession is a visit; retaining/filling active tabs must not change MRU.
     const recordsVisit = validActiveTabId === intentActive || displacedActive !== null

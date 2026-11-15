@@ -38,7 +38,6 @@ export function MobileSessionHeader({
     activePanel,
     setShowHeaderMoreActions,
     requestLeaveSession,
-    visibleTabs,
     showConnectionRetry,
     connectionEscalated,
     terminalSummary,
@@ -57,7 +56,7 @@ export function MobileSessionHeader({
   const topChrome = useTopChromeSpace()
   const sideRail = useShellSideRail()
   // Why: a sideways phone is ~390pt tall, so the tabs share the top bar instead of taking a second row.
-  const hasTabs = visibleTabs.length > 0
+  const hasTabs = controller.sessionTabs.length > 0 || controller.hiddenTabsSupported === true
   const tabsInTopBar = (layout.isLandscapePhone || sideRail) && hasTabs
   // Bar buttons otherwise leave less than two readable tabs on a narrow header.
   const actionsCollapsed = tabsInTopBar && (headerWidth ?? layout.width) < 600

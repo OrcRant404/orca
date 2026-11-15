@@ -18,6 +18,7 @@ const SHARED_OPTIONAL_FIELDS = [
   'aiVaultTitle',
   'quickCommandLabel',
   'isPinned',
+  'isHidden',
   'viewMode'
 ] as const
 

@@ -53,7 +53,10 @@ export function createTabsBulkCloseActions(
         return []
       }
       const closedIds = (state.unifiedTabsByWorktree[worktreeId] ?? [])
-        .filter((item) => item.groupId === group.id && item.id !== tabId && !item.isPinned)
+        .filter(
+          (item) =>
+            item.groupId === group.id && item.id !== tabId && !item.isPinned && !item.isHidden
+        )
         .map((item) => item.id)
       get().closeUnifiedTabs(closedIds)
       return closedIds
@@ -74,14 +77,12 @@ export function createTabsBulkCloseActions(
       if (index === -1) {
         return []
       }
-      const closableIds = group.tabOrder
-        .slice(index + 1)
-        .filter(
-          (id) =>
-            !(state.unifiedTabsByWorktree[worktreeId] ?? []).find(
-              (candidate) => candidate.id === id
-            )?.isPinned
+      const closableIds = group.tabOrder.slice(index + 1).filter((id) => {
+        const candidate = (state.unifiedTabsByWorktree[worktreeId] ?? []).find(
+          (tab) => tab.id === id
         )
+        return candidate && !candidate.isPinned && !candidate.isHidden
+      })
       get().closeUnifiedTabs(closableIds)
       return closableIds
     },
@@ -101,14 +102,12 @@ export function createTabsBulkCloseActions(
       if (index === -1) {
         return []
       }
-      const closableIds = group.tabOrder
-        .slice(0, index)
-        .filter(
-          (id) =>
-            !(state.unifiedTabsByWorktree[worktreeId] ?? []).find(
-              (candidate) => candidate.id === id
-            )?.isPinned
+      const closableIds = group.tabOrder.slice(0, index).filter((id) => {
+        const candidate = (state.unifiedTabsByWorktree[worktreeId] ?? []).find(
+          (tab) => tab.id === id
         )
+        return candidate && !candidate.isPinned && !candidate.isHidden
+      })
       get().closeUnifiedTabs(closableIds)
       return closableIds
     }

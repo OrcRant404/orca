@@ -47,7 +47,7 @@ export async function sweepNativeChatVisualsFolders(
   isStopped: () => boolean = () => false
 ): Promise<NativeChatVisualsSweepResult> {
   const result = { removed: 0, failed: 0 }
-  const root = nativeChatScratchRootFor(deps.stateDirectory)
+  const root = await nativeChatScratchRootFor(deps.stateDirectory)
   // List folders first: each was created after its chat record, so the later roster must include it.
   const entries = await listFolders(root)
   const held = deps.listHeldSessionIds()

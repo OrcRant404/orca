@@ -1,6 +1,7 @@
 import {
   CLIENT_NAVIGATION_PUBLICATION_EPOCH_SUFFIX,
-  type RuntimeMobileSessionTabsResult
+  type RuntimeMobileSessionTabsResult,
+  type RuntimeMobileSessionTabsSnapshot
 } from '../../../../shared/runtime-session-contracts'
 import type { PersistedMobileClientTabSelections } from '../../../../shared/persisted-state-types'
 import {
@@ -155,6 +156,62 @@ export class ClientSessionTabSelectionStore {
     })
     this.persistNow()
     return this.project(snapshot, clientNavigationId)
+  }
+
+  /** Reconcile every known device, including offline clients, before publishing shared visibility. */
+  followHiddenTabs(snapshot: RuntimeMobileSessionTabsSnapshot): void {
+    const hiddenIds = new Set(
+      snapshot.tabs.flatMap((tab) =>
+        tab.isHidden
+          ? [
+              tab.id,
+              tab.type === 'terminal'
+                ? tab.parentTabId
+                : tab.type === 'browser'
+                  ? tab.browserWorkspaceId
+                  : tab.id
+            ]
+          : []
+      )
+    )
+    if (hiddenIds.size === 0) {
+      return
+    }
+    const projected: RuntimeMobileSessionTabsResult = {
+      ...snapshot,
+      tabs: snapshot.tabs.map((tab) =>
+        tab.type === 'terminal'
+          ? { ...tab, status: 'pending-handle' as const, terminal: null }
+          : tab
+      )
+    }
+    let persist = false
+    for (const states of this.statesByClient.values()) {
+      const state = states.get(snapshot.worktree)
+      if (
+        !state ||
+        ![state.selection.activeTabId, ...Object.values(state.selection.activeTabIdByGroupId)].some(
+          (id) => id && hiddenIds.has(id)
+        )
+      ) {
+        continue
+      }
+      const visible = projectWithoutClosedClientSessionTabs(projected, state.closedTabIds).snapshot
+      const next = projectClientSessionTabSelection(
+        visible,
+        state.selection,
+        state.topologyBeforeClose
+      )
+      states.set(snapshot.worktree, {
+        ...state,
+        selection: next.selection,
+        revision: state.revision + 1
+      })
+      persist ||= state.shouldPersist
+    }
+    if (persist) {
+      this.persistNow()
+    }
   }
 
   private reopenedTabIds(

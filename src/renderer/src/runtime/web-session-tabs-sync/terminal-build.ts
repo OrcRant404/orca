@@ -204,6 +204,7 @@ export function buildMirroredTerminalTabs(
             : (existing?.customTitle ?? null),
         color,
         isPinned,
+        isHidden: activeSurface.isHidden === true,
         ...(viewMode ? { viewMode } : {}),
         sortOrder: sortOffset + index,
         createdAt: existing?.createdAt ?? now + index,

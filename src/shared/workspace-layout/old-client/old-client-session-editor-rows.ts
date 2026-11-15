@@ -25,6 +25,7 @@ const fileName = (relativePath: string, fallback: string): string =>
 const tabRowProps = (tab: LayoutContentTab, scope: EditorRowScope) => ({
   color: tab.color ?? null,
   isPinned: tab.isPinned === true,
+  ...(tab.isHidden !== undefined ? { isHidden: tab.isHidden } : {}),
   isActive: scope.activeTabId === tab.id
 })
 

@@ -60,11 +60,14 @@ vi.mock('@/components/cmd-j/palette-host-badge', () => ({
 }))
 
 // Stub activation at its boundary; the palette contract is which result it hands over.
-const { activateWorkspaceTabPaletteResult } = vi.hoisted(() => ({
-  activateWorkspaceTabPaletteResult: vi.fn((_result: unknown) => ({ status: 'activated' }) as const)
+const { unhideAndActivateWorkspaceTabPaletteResult } = vi.hoisted(() => ({
+  unhideAndActivateWorkspaceTabPaletteResult: vi.fn(
+    async (_result: unknown) => ({ status: 'activated' }) as const
+  )
 }))
 vi.mock('@/lib/workspace/search/tabs/workspace-tab-palette-activation', () => ({
-  activateWorkspaceTabPaletteResult: (result: unknown) => activateWorkspaceTabPaletteResult(result)
+  unhideAndActivateWorkspaceTabPaletteResult: (result: unknown) =>
+    unhideAndActivateWorkspaceTabPaletteResult(result)
 }))
 
 vi.mock('@/components/ui/command', async () => {
@@ -209,7 +212,7 @@ describe('WorktreeJumpPalette recent chats & terminals', () => {
     globalThis.IS_REACT_ACT_ENVIRONMENT = true
     setCommandQuery = null
     setCommandSelection = null
-    activateWorkspaceTabPaletteResult.mockClear()
+    unhideAndActivateWorkspaceTabPaletteResult.mockClear()
     useAppStore.setState(initialAppState, true)
     testContainer = document.createElement('div')
     document.body.appendChild(testContainer)
@@ -239,8 +242,12 @@ describe('WorktreeJumpPalette recent chats & terminals', () => {
     })
     await flushEffects()
 
-    expect(activateWorkspaceTabPaletteResult).toHaveBeenCalledWith(
-      expect.objectContaining({ tabId: 'tab-duplicate', worktreeId: 'wt-beta' })
+    expect(unhideAndActivateWorkspaceTabPaletteResult).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tabId: 'tab-duplicate',
+        worktreeId: 'wt-beta',
+        executionHostId: 'ssh:beta'
+      })
     )
   })
 
@@ -348,7 +355,7 @@ describe('WorktreeJumpPalette recent chats & terminals', () => {
     })
     await flushEffects()
 
-    expect(activateWorkspaceTabPaletteResult).toHaveBeenCalledWith(
+    expect(unhideAndActivateWorkspaceTabPaletteResult).toHaveBeenCalledWith(
       expect.objectContaining({ tabId: topRowId })
     )
   })

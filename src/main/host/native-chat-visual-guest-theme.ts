@@ -15,7 +15,11 @@ import { browserSessionRegistry } from '../browser/sessions/profiles/browser-ses
 import { localSshBrowserProfileIdForSession } from '../browser/routing/local-host-partitions/local-ssh-browser-partitions'
 
 /** Install before the host loads: an unanswered synchronous preload request blocks its guest. */
-export function installNativeChatVisualGuestTheme(window: BrowserWindow): void {
+export async function installNativeChatVisualGuestTheme(window: BrowserWindow): Promise<void> {
+  const scratchRoot = await nativeChatScratchRootFor(getProfileUserDataPath())
+  if (window.isDestroyed()) {
+    return
+  }
   let theme: NativeChatVisualGuestTheme | null = null
   const guests = new Map<number, WebContents>()
   const watched = new WeakSet<WebContents>()
@@ -57,10 +61,7 @@ export function installNativeChatVisualGuestTheme(window: BrowserWindow): void {
       guest.isDestroyed() ||
       guest.getType() !== 'webview' ||
       event.senderFrame !== guest.mainFrame ||
-      !isNativeChatVisualGuestLocation(
-        event.senderFrame.url,
-        nativeChatScratchRootFor(getProfileUserDataPath())
-      )
+      !isNativeChatVisualGuestLocation(event.senderFrame.url, scratchRoot)
     ) {
       event.returnValue = null
       return
@@ -76,9 +77,7 @@ export function installNativeChatVisualGuestTheme(window: BrowserWindow): void {
     if (!watched.has(guest)) {
       watched.add(guest)
       guest.on('did-navigate', (_event, url) => {
-        if (
-          !isNativeChatVisualGuestLocation(url, nativeChatScratchRootFor(getProfileUserDataPath()))
-        ) {
+        if (!isNativeChatVisualGuestLocation(url, scratchRoot)) {
           browserSiteDisplayController.setGuestColorSchemeFallback(guest, undefined)
           guests.delete(guest.id)
         } else {

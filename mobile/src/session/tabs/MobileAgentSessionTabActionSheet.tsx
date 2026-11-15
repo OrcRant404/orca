@@ -35,6 +35,7 @@ export function MobileAgentSessionTabActionSheet({
           onDismiss: dismiss
         }),
         ...workerActions,
+        ...controller.hiddenTabActions(tab, dismiss),
         ...closeWithBulkActions(tab, dismiss)
       ]}
       onClose={dismiss}
