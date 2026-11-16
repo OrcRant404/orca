@@ -74,6 +74,10 @@ Use Claude Opus 5.5 (`claude-opus-5-5`) at Medium effort (`medium`) for
 the `claude` role, including UI implementation and independent plan/code reviews.
 Keep Medium unless the user explicitly requests a different effort.
 
+When Astra supplements Fable, use Medium effort (`medium`) for Astra, including
+when launching or reusing a supplemental worker. Keep Medium unless the user
+explicitly requests a different effort.
+
 Use Haiku for a short task with one question or narrow edit, a concrete deliverable,
 and a clear stopping condition. Use Luna when several related searches, research
 steps, or small edits will benefit from retained project context. Long means a
