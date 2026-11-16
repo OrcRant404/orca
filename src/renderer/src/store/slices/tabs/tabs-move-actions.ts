@@ -3,7 +3,10 @@ import { collapseGroupLayout } from '../../../../../shared/workspace-layout/tab-
 import { buildActiveSurfacePatch } from './tabs-surface'
 import { findGroupAndWorktree, findGroupForTab, findTabAndWorktree } from './tab-group-state'
 import { pickNextActiveTab, pushRecentTabId, sanitizeRecentTabIds } from './tab-selection-history'
-import { dedupeTabOrder } from '../../../../../shared/workspace-layout/tab-order'
+import {
+  dedupeTabOrder,
+  partitionPinnedTabOrder
+} from '../../../../../shared/workspace-layout/tab-order'
 
 export function createTabsMoveActions(
   set: TabsSliceSet,
@@ -32,12 +35,16 @@ export function createTabsMoveActions(
         const dedupedSourceGroupOrder = dedupeTabOrder(sourceGroup.tabOrder)
         const sourceOrder = dedupeTabOrder(dedupedSourceGroupOrder.filter((id) => id !== tabId))
         // Stale target orders may already contain tabId; dedupe to prevent duplicate React keys (also guarded in dropUnifiedTab).
-        const targetOrder = dedupeTabOrder(targetGroup.tabOrder.filter((id) => id !== tabId))
+        let targetOrder = dedupeTabOrder(targetGroup.tabOrder.filter((id) => id !== tabId))
         const targetIndex = Math.max(
           0,
           Math.min(opts?.index ?? targetOrder.length, targetOrder.length)
         )
         targetOrder.splice(targetIndex, 0, tabId)
+        targetOrder = partitionPinnedTabOrder(
+          targetOrder,
+          state.unifiedTabsByWorktree[worktreeId] ?? []
+        )
         const nextActiveGroupIdByWorktree = {
           ...state.activeGroupIdByWorktree,
           [worktreeId]: opts?.activate ? targetGroupId : state.activeGroupIdByWorktree[worktreeId]

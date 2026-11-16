@@ -196,8 +196,8 @@ it('saves hidden tabs without changing their membership, pane bindings or order,
   expect(workspace.groupLayout).toEqual(before.groupLayout)
   expect(workspace.leaves).toEqual(before.leaves)
   expect(workspace.tabs.map((tab) => tab.id)).toEqual([
-    'tab-shell',
     'tab-agent',
+    'tab-shell',
     'editor:src/app.ts',
     'browser-1',
     'agent-session-1',

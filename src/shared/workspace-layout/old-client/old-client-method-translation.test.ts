@@ -201,15 +201,17 @@ describe('session.tabs.move translation', () => {
         tabOrder: [browser, terminalRowId(tabA, leafA), tabB]
       })
     )
-    expect(groupOrder(build(ctx, commands, model).model, group.id)).toEqual([browser, tabA, tabB])
-    // Each step names the tab before its slot in the wanted order, so main places it there.
-    expect(commands.map((command) => command.type === 'moveTab' && command.afterTabId)).toEqual(
-      commands.map((command) =>
-        command.type === 'moveTab' && command.index > 0
-          ? [browser, tabA, tabB][command.index - 1]
-          : null
-      )
-    )
+    expect(groupOrder(build(ctx, commands, model).model, group.id)).toEqual([tabB, browser, tabA])
+    expect(commands).toEqual([
+      {
+        type: 'moveTab',
+        workspace: WS,
+        tabId: browser,
+        toGroupId: group.id,
+        index: 1,
+        afterTabId: tabB
+      }
+    ])
   })
 
   it.each([

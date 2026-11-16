@@ -16,7 +16,7 @@ import {
   selectHydratedActiveGroupId
 } from './tab-hydration-records'
 import { sanitizeRecentTabIds } from './tab-selection-history'
-import { dedupeTabOrder } from '../../../../../shared/workspace-layout/tab-order'
+import { partitionPinnedTabOrder } from '../../../../../shared/workspace-layout/tab-order'
 import { restoresSavedContentTab } from '../../../../../shared/workspace-layout/saved-editor-tab-restore'
 
 type HydratedTabState = {
@@ -163,10 +163,11 @@ export function buildHydratedTabState(
       const tabIdAliases = tabIdAliasesByGroup?.get(g.id)
       const canonicalTabId = (tabId: string): string => tabIdAliases?.get(tabId) ?? tabId
       // Repair persisted duplicate tabOrder IDs before neighbor/count-dependent operations.
-      const tabOrder = dedupeTabOrder(
+      const tabOrder = partitionPinnedTabOrder(
         g.tabOrder
           .map(canonicalTabId)
-          .filter((tid) => tabOwners.get(tid) === g.id || slots.has(tid))
+          .filter((tid) => tabOwners.get(tid) === g.id || slots.has(tid)),
+        hydratedTabsForWorktree
       )
       const canonicalActiveTabId = g.activeTabId ? canonicalTabId(g.activeTabId) : null
       const activeTabId = visibleActiveTabId(

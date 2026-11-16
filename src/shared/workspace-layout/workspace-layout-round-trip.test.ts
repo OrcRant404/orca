@@ -65,8 +65,8 @@ describe('workspace layout Loader and Serializer', () => {
     }
     const workspace = loaded.layout.workspaces['repo-1::/Users/dev/orca']!
     expect(workspace.tabs.map((tab) => [tab.id, tab.kind])).toEqual([
-      ['tab-shell', 'terminal'],
       ['tab-agent', 'terminal'],
+      ['tab-shell', 'terminal'],
       ['editor:src/app.ts', 'editor'],
       ['browser-1', 'browser'],
       ['agent-session-1', 'agent-session'],
@@ -79,7 +79,7 @@ describe('workspace layout Loader and Serializer', () => {
       resume: { agent: 'claude' }
     })
     expect(workspace.groups.map((group) => group.tabOrder)).toEqual([
-      ['tab-shell', 'tab-agent', 'editor:src/app.ts'],
+      ['tab-agent', 'tab-shell', 'editor:src/app.ts'],
       ['browser-1', 'agent-session-1', 'tab-unbound']
     ])
     expect(loaded.desktopView.groups['repo-1::/Users/dev/orca']!['group-a']).toEqual({

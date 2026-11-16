@@ -65,13 +65,16 @@ export function reorderProjectedTabOrder(
 export function partitionPinnedTabOrder(
   tabOrder: string[],
   tabs: readonly PinnedTab[],
-  movingTabId: string
+  movingTabId?: string
 ): string[] {
   const tabById = new Map(tabs.map((tab) => [tab.id, tab]))
   const withoutMoving = dedupeTabOrder(tabOrder).filter((id) => id !== movingTabId)
   const pinnedIds = withoutMoving.filter((id) => tabById.get(id)?.isPinned)
   const unpinnedIds = withoutMoving.filter((id) => !tabById.get(id)?.isPinned)
-  return [...pinnedIds, movingTabId, ...unpinnedIds]
+  const next = [...pinnedIds, ...(movingTabId === undefined ? [] : [movingTabId]), ...unpinnedIds]
+  return next.length === tabOrder.length && next.every((id, index) => id === tabOrder[index])
+    ? tabOrder
+    : next
 }
 
 export function applyTabOrderSortValues(tabs: Tab[], tabOrder: string[]): Tab[] {
@@ -91,7 +94,7 @@ export function insertTabIdIntoOrder(
   anchorTabId?: string
 ): string[] {
   const tabById = new Map(tabs.map((tab) => [tab.id, tab]))
-  const order = dedupeTabOrder([...tabOrder]).filter((id) => id !== tabId)
+  const order = partitionPinnedTabOrder([...tabOrder], tabs).filter((id) => id !== tabId)
   const firstUnpinnedIndex = order.findIndex((id) => !tabById.get(id)?.isPinned)
   const pinnedPrefixEnd = firstUnpinnedIndex === -1 ? order.length : firstUnpinnedIndex
   const anchorIndex = anchorTabId ? order.indexOf(anchorTabId) : -1
@@ -165,13 +168,15 @@ export function tabOrderMoves(from: readonly string[], to: readonly string[]): T
 export function reorderTabOrderPreservingHidden(
   order: string[],
   requested: string[],
-  tabs: readonly Pick<Tab, 'id' | 'isHidden'>[],
+  tabs: readonly Pick<Tab, 'id' | 'isHidden' | 'isPinned'>[],
   movingTabId?: string
 ): string[] {
   const omittedHidden = order.some(
     (id) => !requested.includes(id) && tabs.some((tab) => tab.id === id && tab.isHidden)
   )
-  return movingTabId || omittedHidden
-    ? reorderProjectedTabOrder(order, requested, movingTabId ?? '')
-    : dedupeTabOrder(requested)
+  const reordered =
+    movingTabId || omittedHidden
+      ? reorderProjectedTabOrder(order, requested, movingTabId ?? '')
+      : dedupeTabOrder(requested)
+  return partitionPinnedTabOrder(reordered, tabs)
 }

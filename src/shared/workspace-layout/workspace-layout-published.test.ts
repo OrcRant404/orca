@@ -20,18 +20,18 @@ describe('publishWorkspaceLayout: the explicit published projection', () => {
   it('publishes tabs and panes in the one tab order, without runtime records or legacy bits', () => {
     const { workspace } = published()
     expect(workspace.groups).toEqual([
-      { id: 'group-a', tabIds: ['tab-shell', 'tab-agent', 'editor:src/app.ts'] },
+      { id: 'group-a', tabIds: ['tab-agent', 'tab-shell', 'editor:src/app.ts'] },
       { id: 'group-b', tabIds: ['browser-1', 'agent-session-1', 'tab-unbound'] }
     ])
     expect(workspace.tabs.map((tab) => tab.id)).toEqual([
-      'tab-shell',
       'tab-agent',
+      'tab-shell',
       'editor:src/app.ts',
       'browser-1',
       'agent-session-1',
       'tab-unbound'
     ])
-    const agent = workspace.tabs[1]!
+    const agent = workspace.tabs.find((tab) => tab.id === 'tab-agent')!
     expect(agent).toMatchObject({ entityId: 'term-agent', customTitle: 'Agent', isPinned: true })
     expect(agent.terminal).toEqual({
       root: { type: 'leaf', leafId: leaf(3) },

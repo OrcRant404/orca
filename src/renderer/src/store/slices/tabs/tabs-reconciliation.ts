@@ -5,7 +5,10 @@ import {
 import { structuredLaunchSlotIds } from '@/lib/agent-session/launch/structured-agent-session-launch-persistence'
 import type { AppState } from '../../types'
 import type { Tab } from '../../../../../shared/tab-types'
-import { dedupeTabOrder } from '../../../../../shared/workspace-layout/tab-order'
+import {
+  dedupeTabOrder,
+  partitionPinnedTabOrder
+} from '../../../../../shared/workspace-layout/tab-order'
 import { ensureGroup, updateGroup } from './tab-group-state'
 import { sanitizeRecentTabIds } from './tab-selection-history'
 import { pruneTabGroupLayoutForGroups } from './tabs-hydration'
@@ -78,6 +81,7 @@ export function projectWorktreeTabModelReconciliation(
             customLabel: tab.customTitle,
             color: tab.color,
             isHidden: tab.isHidden,
+            isPinned: tab.isPinned,
             sortOrder: tab.sortOrder,
             createdAt: tab.createdAt
           }))
@@ -130,7 +134,10 @@ export function projectWorktreeTabModelReconciliation(
   const validTabIds = new Set(validTabs.map((tab) => tab.id))
   const nextGroupsWithEmpty = reconciledGroups.map((group) => {
     const slots = structuredLaunchSlotIds(worktreeId, group.id)
-    const tabOrder = group.tabOrder.filter((tabId) => validTabIds.has(tabId) || slots.has(tabId))
+    const tabOrder = partitionPinnedTabOrder(
+      group.tabOrder.filter((tabId) => validTabIds.has(tabId) || slots.has(tabId)),
+      validTabs
+    )
     const realOrder = tabOrder.filter((id) => validTabIds.has(id))
     const selected =
       group.activeTabId && validTabIds.has(group.activeTabId) ? group.activeTabId : null

@@ -237,8 +237,7 @@ describe('a tab the window drew, closed or moved, with a frame from before main 
 
   it('keeps a reorder the window made, and main’s order for the rest', async () => {
     const { store, sync, before, answer } = await boot()
-    const order = groupOrder(store, 'group-a')!
-    const reordered = order.toReversed()
+    const reordered = ['tab-agent', 'editor:src/app.ts', 'tab-shell']
     store.getState().reorderUnifiedTabs('group-a', reordered)
     const moves = rpc.calls.filter((call) => call.command.type === 'moveTab')
     expect(moves.length).toBeGreaterThan(0)

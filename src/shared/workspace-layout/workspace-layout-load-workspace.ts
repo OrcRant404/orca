@@ -23,6 +23,7 @@ import type { WorkspaceLoadArgs } from './workspace-layout-load-types'
 import { restoresSavedContentTab } from './saved-editor-tab-restore'
 import type { LayoutTab, LayoutTerminalTab, WorkspaceLayout } from './workspace-layout-model'
 import { pruneGroupLayout } from '../workspace-session/workspace-session-terminal-tab-close'
+import { partitionPinnedTabOrder } from './tab-order'
 
 function takeRows({ session, key, terminalHomes }: WorkspaceLoadArgs) {
   const rows: TerminalTab[] = []
@@ -230,7 +231,7 @@ export function loadWorkspace(
     candidates,
     workspaceKey: key,
     mintId: args.context.mintId
-  })
+  }).map((group) => ({ ...group, tabOrder: partitionPinnedTabOrder(group.tabOrder, tabs) }))
   const workspace: WorkspaceLayout = { worktreeId, tabs, groups }
   const groupLayout = pruneGroupLayout(
     session.tabGroupLayouts?.[key],

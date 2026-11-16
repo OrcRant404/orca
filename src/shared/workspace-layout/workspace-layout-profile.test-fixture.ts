@@ -112,6 +112,19 @@ export function localDesktopSession(): WorkspaceSessionState {
       ]
     }
   ])
+  const [shell, agent, ...otherEntries] = session.unifiedTabs![GIT_KEY]!
+  session.unifiedTabs![GIT_KEY] = [
+    { ...agent!, sortOrder: 0 },
+    { ...shell!, sortOrder: 1 },
+    ...otherEntries
+  ]
+  const [shellRow, agentRow, ...otherRows] = session.tabsByWorktree[GIT_KEY]!
+  session.tabsByWorktree[GIT_KEY] = [
+    { ...agentRow!, sortOrder: 0 },
+    { ...shellRow!, sortOrder: 1 },
+    ...otherRows
+  ]
+  session.tabGroups![GIT_KEY]![0]!.tabOrder = ['tab-agent', 'tab-shell', 'editor:src/app.ts']
   session.openFilesByWorktree = {
     [GIT_KEY]: [
       {

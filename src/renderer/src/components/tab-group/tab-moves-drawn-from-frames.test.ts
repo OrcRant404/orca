@@ -106,8 +106,12 @@ describe('a tab move drawn from main’s frame', () => {
     await settle()
 
     expect(tabOf('tab-unbound').groupId).toBe('group-a')
-    expect(groupOf('group-a')!.tabOrder).toEqual(mainGroupOf('tab-unbound').tabOrder)
-    expect(groupOf('group-a')!.tabOrder[0]).toBe('tab-unbound')
+    expect(groupOf('group-a')!.tabOrder).toEqual([
+      'tab-agent',
+      'tab-unbound',
+      'tab-shell',
+      'editor:src/app.ts'
+    ])
     expect(groupOf('group-a')!.activeTabId).toBe('tab-unbound')
     expect(useAppStore.getState().activeGroupIdByWorktree[GIT_KEY]).toBe('group-a')
     expect(windowTabWrites()).toBe(0)

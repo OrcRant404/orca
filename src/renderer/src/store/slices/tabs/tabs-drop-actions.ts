@@ -10,7 +10,10 @@ import {
 import { buildActiveSurfacePatch } from './tabs-surface'
 import { findGroupAndWorktree, findGroupForTab, findTabAndWorktree } from './tab-group-state'
 import { pickNextActiveTab, pushRecentTabId, sanitizeRecentTabIds } from './tab-selection-history'
-import { dedupeTabOrder } from '../../../../../shared/workspace-layout/tab-order'
+import {
+  dedupeTabOrder,
+  partitionPinnedTabOrder
+} from '../../../../../shared/workspace-layout/tab-order'
 
 export function createTabsDropActions(
   set: TabsSliceSet,
@@ -95,12 +98,16 @@ export function createTabsDropActions(
         const destinationGroup =
           nextGroups.find((group) => group.id === resolvedTargetGroupId) ?? targetGroup
         // Why: target order may already hold this tab id (racey write / same-group split); dedupe first or React hits a duplicate key.
-        const targetOrder = dedupeTabOrder(destinationGroup.tabOrder.filter((id) => id !== tabId))
+        let targetOrder = dedupeTabOrder(destinationGroup.tabOrder.filter((id) => id !== tabId))
         const targetIndex = Math.max(
           0,
           Math.min(target.index ?? targetOrder.length, targetOrder.length)
         )
         targetOrder.splice(targetIndex, 0, tabId)
+        targetOrder = partitionPinnedTabOrder(
+          targetOrder,
+          state.unifiedTabsByWorktree[worktreeId] ?? []
+        )
 
         const sourceRecentTabIds = sanitizeRecentTabIds(
           (sourceGroup.recentTabIds ?? []).filter((id) => id !== tabId),

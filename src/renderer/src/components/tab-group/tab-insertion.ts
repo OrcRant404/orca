@@ -1,6 +1,8 @@
 import { useCallback, useState } from 'react'
 import type { DragEndEvent, DragMoveEvent, DragOverEvent } from '@dnd-kit/core'
 import type { TabDragItemData } from './tab-drag-data'
+import type { Tab } from '../../../../shared/tab-types'
+import { useAppStore } from '../../store'
 
 // Keep tabs anchored and draw the insertion bar on the hovered tab’s before/after edge.
 export type HoveredTabInsertion = {
@@ -20,7 +22,8 @@ export function resolveTabInsertion(
   getDragCenter: (event: DragMoveEvent | DragOverEvent | DragEndEvent) => {
     x: number
     y: number
-  } | null
+  } | null,
+  tabs?: readonly Pick<Tab, 'id' | 'isPinned'>[]
 ): HoveredTabInsertion | null {
   const overData = event.over?.data.current
   const activeData = event.active.data.current
@@ -28,6 +31,11 @@ export function resolveTabInsertion(
     return null
   }
   if (activeData.unifiedTabId === overData.unifiedTabId) {
+    return null
+  }
+  const activeTab = tabs?.find((tab) => tab.id === activeData.unifiedTabId)
+  const overTab = tabs?.find((tab) => tab.id === overData.unifiedTabId)
+  if (activeTab && overTab && Boolean(activeTab.isPinned) !== Boolean(overTab.isPinned)) {
     return null
   }
   const center = getDragCenter(event)
@@ -86,7 +94,11 @@ export function useHoveredTabInsertion(
   const [hoveredTabInsertion, setHoveredTabInsertion] = useState<HoveredTabInsertion | null>(null)
   const update = useCallback(
     (event: DragMoveEvent | DragOverEvent) => {
-      const next = resolveTabInsertion(event, isTabDragData, getDragCenter)
+      const activeData = event.active.data.current
+      const tabs = isTabDragData(activeData)
+        ? useAppStore.getState().unifiedTabsByWorktree[activeData.worktreeId]
+        : undefined
+      const next = resolveTabInsertion(event, isTabDragData, getDragCenter, tabs)
       setHoveredTabInsertion((prev) => (equal(prev, next) ? prev : next))
     },
     [isTabDragData, getDragCenter]

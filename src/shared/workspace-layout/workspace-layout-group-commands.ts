@@ -16,6 +16,7 @@ import type { WorkspaceLayout, WorkspaceLayoutModel } from './workspace-layout-m
 import { withWorkspace } from './workspace-layout-removal'
 import { groupShowsTabFile } from './workspace-layout-workspace-move'
 import { withGroupSplitRatios } from './split-ratio-intents'
+import { partitionPinnedTabOrder } from './tab-order'
 
 function sourceGroupOf(workspace: WorkspaceLayout, tabId: string) {
   return findTab(workspace, tabId)
@@ -93,15 +94,23 @@ export function moveTab(
   )
 }
 
-/** Apply the moved pin at the requested slot without re-sorting pinned tabs. */
+/** Keep the requested slot within the moved tab's pin partition. */
 function withMovedPin(workspace: WorkspaceLayout, command: CommandOf<'moveTab'>): WorkspaceLayout {
   const { isPinned } = command
-  if (isPinned === undefined) {
-    return workspace
-  }
+  const tabs =
+    isPinned === undefined
+      ? workspace.tabs
+      : workspace.tabs.map((tab) => (tab.id === command.tabId ? { ...tab, isPinned } : tab))
   return {
     ...workspace,
-    tabs: workspace.tabs.map((tab) => (tab.id === command.tabId ? { ...tab, isPinned } : tab))
+    tabs,
+    groups: workspace.groups.map((group) => {
+      if (group.id !== command.toGroupId) {
+        return group
+      }
+      const tabOrder = partitionPinnedTabOrder(group.tabOrder, tabs)
+      return tabOrder === group.tabOrder ? group : { ...group, tabOrder }
+    })
   }
 }
 

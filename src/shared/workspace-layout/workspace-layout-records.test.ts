@@ -60,7 +60,7 @@ describe('a published layout as records', () => {
     [
       'a generated title: one tab row',
       (layout: PublishedWorkspaceLayout) => {
-        layout.tabs[0]!.generatedTitle = 'Fix the build'
+        layout.tabs.find((tab) => tab.id === 'tab-shell')!.generatedTitle = 'Fix the build'
       },
       {
         tabs: {

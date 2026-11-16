@@ -108,7 +108,12 @@ export function commitTabDragDrop({
     }
 
     // Recompute insertion side at drop so the destination matches the drawn bar without stale closure state.
-    const insertion = resolveTabInsertion(event, isTabDragData, getDragPointer)
+    const insertion = resolveTabInsertion(
+      event,
+      isTabDragData,
+      getDragPointer,
+      state.unifiedTabsByWorktree[worktreeId]
+    )
     if (!insertion) {
       finishDrag(true)
       return

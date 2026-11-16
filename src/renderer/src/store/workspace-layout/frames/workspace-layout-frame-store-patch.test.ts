@@ -113,12 +113,12 @@ describe('laying frame slices over the store', () => {
     const hiddenSlices = buildLayoutFrameSlices({ layouts: { [GIT_KEY]: hidden }, facts, view })
     expect(hiddenSlices.groupsByWorktree[GIT_KEY]![0]).toMatchObject({
       activeTabId: null,
-      tabOrder: ['tab-shell', 'tab-agent', 'editor:src/app.ts']
+      tabOrder: ['tab-agent', 'tab-shell', 'editor:src/app.ts']
     })
     const restoredSlices = buildLayoutFrameSlices({ layouts: { [GIT_KEY]: frame }, facts, view })
     expect(restoredSlices.groupsByWorktree[GIT_KEY]![0]).toMatchObject({
       activeTabId: null,
-      tabOrder: ['tab-shell', 'tab-agent', 'editor:src/app.ts']
+      tabOrder: ['tab-agent', 'tab-shell', 'editor:src/app.ts']
     })
   })
 
@@ -141,7 +141,7 @@ describe('laying frame slices over the store', () => {
     })
     expect(slices.groupsByWorktree[GIT_KEY]![0]).toMatchObject({
       activeTabId: 'tab-agent',
-      tabOrder: ['tab-shell', 'tab-agent', 'editor:src/app.ts']
+      tabOrder: ['tab-agent', 'tab-shell', 'editor:src/app.ts']
     })
   })
 

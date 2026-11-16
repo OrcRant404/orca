@@ -169,7 +169,7 @@ describe('patchStoredSession', () => {
     const [workspace, rows] = Object.entries(stored.tabsByWorktree).find(([, tabs]) =>
       tabs.some((tab) => tab.ptyId)
     )!
-    const row = rows.find((tab) => tab.ptyId)!
+    const row = rows.find((tab) => tab.id === 'tab-shell')!
     const { [row.id]: _dropped, ...layouts } = stored.terminalLayoutsByTabId
     stored.terminalLayoutsByTabId = layouts
     const loaded = loadWorkspaceLayout(profile.hostId, stored, nameBasedLoadContext())

@@ -1,5 +1,6 @@
 import type { Tab, TabGroup, TabGroupLayoutNode } from '../../../../../shared/tab-types'
 import { createNonSecureContextUuid as createBrowserUuid } from '../../../../../shared/non-secure-context-uuid'
+import { partitionPinnedTabOrder } from '../../../../../shared/workspace-layout/tab-order'
 
 function collectLayoutGroupIds(node: TabGroupLayoutNode, groupIds: Set<string>): void {
   if (node.type === 'leaf') {
@@ -80,7 +81,7 @@ export function adoptGrouplessTabs(
     const adopted = orphanIds.length
       ? {
           ...host,
-          tabOrder: [...host.tabOrder, ...orphanIds],
+          tabOrder: partitionPinnedTabOrder([...host.tabOrder, ...orphanIds], tabs),
           activeTabId: host.activeTabId ?? orphanIds[0]
         }
       : host

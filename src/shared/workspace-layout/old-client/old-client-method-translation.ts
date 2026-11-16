@@ -5,7 +5,7 @@ import { isTerminalLeafId } from '../stable-pane-id'
 import { isValidHostTerminalTabId } from '../terminal-tab-id'
 import type { TerminalPaneSplitDirection } from '../terminal-tab-types'
 import { resolveSessionTabRow } from './old-client-session-tab-rows'
-import { tabOrderAnchor } from '../tab-order'
+import { partitionPinnedTabOrder, tabOrderAnchor } from '../tab-order'
 import { collectLayoutLeafIdsInOrder, layoutContainsLeafId } from '../terminal-pane-tree'
 import type { ProjectedSessionTabs } from './old-client-session-tabs-projection'
 import type { LayoutCommand, LayoutRefusalCode } from '../workspace-layout-command-types'
@@ -221,7 +221,10 @@ export function translateSessionTabMove(
   }
   const shownSet = new Set(shownOrder)
   let next = 0
-  const wanted = target.tabOrder.map((id) => (shownSet.has(id) ? sent[next++]! : id))
+  const wanted = partitionPinnedTabOrder(
+    target.tabOrder.map((id) => (shownSet.has(id) ? sent[next++]! : id)),
+    workspace.tabs
+  )
   const order = [...target.tabOrder]
   const commands: LayoutCommand[] = []
   wanted.forEach((id, index) => {
