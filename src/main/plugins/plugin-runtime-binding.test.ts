@@ -274,16 +274,33 @@ describe('workspace.changed', () => {
       written()
       await vi.advanceTimersByTimeAsync(20)
       expect(events.emitEvent).toHaveBeenCalledWith('workspace.changed', {
-        context: { branch: 'main', displayName: 'w', terminals: [{ id: 'term_a', title: 'zsh' }] }
+        context: {
+          branch: 'main',
+          displayName: 'w',
+          focusKey: expect.any(String),
+          terminals: [{ id: 'term_a', title: 'zsh' }]
+        }
       })
       written()
       await vi.advanceTimersByTimeAsync(20)
       expect(events.emitEvent).toHaveBeenCalledOnce()
+      source.resolveActiveWorktreeContext.mockResolvedValueOnce({
+        worktreeId: 'other::/other/w',
+        path: '/other/w',
+        branch: 'refs/heads/main',
+        displayName: 'w'
+      })
+      written()
+      await vi.advanceTimersByTimeAsync(20)
+      expect(events.emitEvent).toHaveBeenCalledTimes(2)
+      expect(events.emitEvent.mock.calls[1]?.[1].context.focusKey).not.toBe(
+        events.emitEvent.mock.calls[0]?.[1].context.focusKey
+      )
       source.listTerminals.mockResolvedValueOnce({ terminals: [] })
       written()
       await vi.advanceTimersByTimeAsync(20)
       expect(events.emitEvent).toHaveBeenLastCalledWith('workspace.changed', {
-        context: { branch: 'main', displayName: 'w', terminals: [] }
+        context: { branch: 'main', displayName: 'w', focusKey: expect.any(String), terminals: [] }
       })
       stop()
     } finally {

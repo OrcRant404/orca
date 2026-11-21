@@ -85,6 +85,7 @@ export function bindPluginHostServices(input: {
       // Retain path-bearing worktree IDs for host membership checks; public projections exclude them.
       return {
         worktreeId: context.worktreeId,
+        path: context.path,
         branch: context.branch,
         displayName: context.displayName
       }

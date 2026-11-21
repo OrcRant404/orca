@@ -31,7 +31,8 @@ export const ORCHESTRATION_CREW_METHODS = [
         const stop = subscribeCrew(
           () => runtime.getOrchestrationCrewSnapshot(party),
           runtime.watchOrchestrationCrew,
-          emit
+          emit,
+          250
         )
         runtime.registerSubscriptionCleanup(
           key,

@@ -368,3 +368,36 @@ function longDetails(host: typeof pane, pendingQuestion: boolean) {
 
 export const terminalQuestionDetails = longDetails(pane, true)
 export const nativeLatestDetails = longDetails(nativeChat, false)
+
+export const nativeTeam = defineFixture({
+  width: 1000,
+  render: () => (
+    <div className="relative h-[560px] bg-background p-5 text-foreground" data-native-chat-root>
+      <p className="text-sm">Reviewing the implementation with the team.</p>
+      <CrewPanelContent
+        initialOpen
+        target={{ kind: 'local' }}
+        party="term_lead"
+        canMention
+        mention={() => {}}
+        snapshot={snapshot('Review worker')}
+      />
+    </div>
+  )
+})
+
+export const emptyNativeTeam = defineFixture({
+  width: 540,
+  render: () => (
+    <div className="relative h-80 bg-background text-foreground" data-native-chat-root>
+      <CrewPanelContent
+        initialOpen
+        target={{ kind: 'local' }}
+        party="term_lead"
+        canMention={false}
+        mention={() => {}}
+        snapshot={{ status: 'ok', sections: { managedBy: [], managing: [], talkingWith: [] } }}
+      />
+    </div>
+  )
+})

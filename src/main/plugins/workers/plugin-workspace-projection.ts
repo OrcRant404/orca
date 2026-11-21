@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import type { z } from 'zod'
 import { shortPluginBranchName } from '../../../shared/plugins/events/plugin-events'
 import {
@@ -42,7 +43,7 @@ export function pluginTerminalTitle(terminal: {
   return title ? title.slice(0, PLUGIN_WORKSPACE_LABEL_MAX_LENGTH) : undefined
 }
 
-/** Worktree ids embed provider paths: only these public fields reach plugins. */
+/** Worktree IDs contain paths; frame clients get an opaque change key. */
 export function projectPluginWorkspaceContext(
   context: Context | null,
   terminals: readonly PluginWorkspaceTerminal[]
@@ -53,6 +54,7 @@ export function projectPluginWorkspaceContext(
   return {
     branch: shortPluginBranchName(context.branch).slice(0, PLUGIN_WORKSPACE_LABEL_MAX_LENGTH),
     displayName: context.displayName.slice(0, PLUGIN_WORKSPACE_LABEL_MAX_LENGTH),
+    focusKey: createHash('sha256').update(context.worktreeId).digest('hex'),
     terminals: terminals
       .filter(({ id }) => id.length > 0 && id.length <= PLUGIN_TERMINAL_ID_MAX_LENGTH)
       .slice(0, PLUGIN_WORKSPACE_TERMINAL_LIMIT)

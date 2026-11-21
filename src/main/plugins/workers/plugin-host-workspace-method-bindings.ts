@@ -108,10 +108,11 @@ function branchName(branch: string | undefined): string | null {
 export const PLUGIN_WORKSPACE_ACTION_HANDLERS = {
   'workspace.list': bind(api['workspace.list'], async (_params, { services }) => {
     const call = rpc(services)
-    const [listed, repos, folderList] = await Promise.all([
+    const [listed, repos, folderList, focused] = await Promise.all([
       call('worktree.list', { limit: PLUGIN_WORKSPACE_LIST_LIMIT }),
       call('repo.list', {}),
-      call('folderWorkspace.list', undefined)
+      call('folderWorkspace.list', undefined),
+      services.resolveActiveWorktreeContext().catch(() => null)
     ])
     const { worktrees, totalCount, truncated } = worktreeListAnswer.parse(listed)
     const folderRepos = new Set(
@@ -141,8 +142,14 @@ export const PLUGIN_WORKSPACE_ACTION_HANDLERS = {
       hostId: folder.executionHostId ?? null
     }))
     const room = PLUGIN_WORKSPACE_LIST_LIMIT - worktreeRows.length
+    const workspaces = [...worktreeRows, ...projectFolders.slice(0, room)]
+    const listedFocus =
+      focused &&
+      (worktrees.some(({ id, path }) => id === focused.worktreeId && path === focused.path) ||
+        projectFolders.some(({ id, path }) => id === focused.worktreeId && path === focused.path))
     return {
-      workspaces: [...worktreeRows, ...projectFolders.slice(0, room)],
+      workspaces,
+      focusedPath: listedFocus && focused.path ? focused.path : null,
       truncated:
         truncated === true ||
         (totalCount ?? worktrees.length) > worktreeRows.length ||

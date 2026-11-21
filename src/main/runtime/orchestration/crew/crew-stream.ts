@@ -7,10 +7,12 @@ import {
 export function subscribeCrew(
   read: () => OrchestrationCrewSnapshot,
   watch: (wake: () => void) => () => void,
-  emit: (frame: OrchestrationCrewFrame) => void
+  emit: (frame: OrchestrationCrewFrame) => void,
+  coalesceMs = 0
 ): () => void {
   let alive = true
   let queued = false
+  let timer: ReturnType<typeof setTimeout> | undefined
   let previous: string | undefined
   const publish = () => {
     if (!alive) {
@@ -41,14 +43,20 @@ export function subscribeCrew(
       return
     }
     queued = true
-    queueMicrotask(() => {
+    const flush = () => {
       queued = false
       publish()
-    })
+    }
+    if (coalesceMs > 0) {
+      timer = setTimeout(flush, coalesceMs)
+    } else {
+      queueMicrotask(flush)
+    }
   })
   publish()
   return () => {
     alive = false
+    clearTimeout(timer)
     unwatch()
   }
 }

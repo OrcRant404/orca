@@ -42,6 +42,8 @@ export const pluginWorkspaceContextSchema = z
   .object({
     branch: z.string().max(PLUGIN_WORKSPACE_LABEL_MAX_LENGTH),
     displayName: z.string().max(PLUGIN_WORKSPACE_LABEL_MAX_LENGTH),
+    /** An opaque key that changes when focus moves between otherwise identical workspaces. */
+    focusKey: z.string().max(64).optional(),
     /** Terminals of the focused workspace, so callers can address a specific
      *  terminal id — the API has no "active terminal" write target. */
     terminals: z

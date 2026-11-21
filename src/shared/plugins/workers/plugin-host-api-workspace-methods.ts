@@ -36,6 +36,8 @@ const workspaceListResult = z.object({
       })
     )
     .max(PLUGIN_WORKSPACE_LIST_LIMIT),
+  /** The focused workspace's path, on its execution host. */
+  focusedPath: z.string().min(1).max(ID_MAX).nullable().optional(),
   /** More workspaces exist than the list holds. */
   truncated: z.boolean()
 })

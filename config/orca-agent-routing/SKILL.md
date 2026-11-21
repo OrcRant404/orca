@@ -48,27 +48,38 @@ Choose by the current assignment; an explicit user choice always wins. Before
 implementation, route bounded discovery to Haiku or Luna. Bundle related lookups
 into one assignment. Use Haiku for one short question or isolated small edit; use
 Luna for a sequence of related searches, research steps, documentation changes,
-or small edits that benefit from continuing context. Do not classify work as
-Sol work merely because it touches several files. Use Sol for complex debugging,
-substantial implementation, integration, or broad refactors.
+or small guided edits that benefit from continuing context. Haiku and Luna are
+the default for small guided implementation, including narrow tests with clear
+expected behavior. A known target, bounded change, and concrete acceptance check
+are enough; implementation or several touched files alone do not require Sol.
+Use Sol for complex debugging, substantial implementation, cross-module integration,
+or broad refactors. Escalate when the assigned problem exceeds the worker's scope.
 
 Use Terra for screenshot/asset inspection, visual QA, drawings, and source-grounded
 writing. For work with a rendered UI, assign bounded visual inspection to Terra
 when applicable; provide screenshots or artifacts if Terra lacks the app tools.
-If the required evidence or tools are unavailable, report that limitation. Claude
-implements UI changes and performs independent plan/code reviews at Medium.
+If the required evidence or tools are unavailable, report that limitation. Terra
+also implements small guided UI/visual fixes against an explicit reference or an
+existing pattern. Haiku or Luna may make mechanical UI edits with exact instructions
+and acceptance checks. Claude owns new design, substantial UI/interaction changes,
+and independent plan/code reviews at Medium.
 
 Apply the role boundaries below:
 
 | Work                                                                                                            | Profile key | Session use                                  |
 | --------------------------------------------------------------------------------------------------------------- | ----------- | -------------------------------------------- |
-| UI implementation, layout, styling, interactions, accessibility, polish                                         | `claude`    | Separate implementation and review sessions  |
+| New design, substantial UI implementation, layout, interactions and accessibility changes                       | `claude`    | Separate implementation and review sessions  |
 | Independent plan review before substantial changes; code review afterward                                       | `claude`    | Independent of the implementer               |
-| Screenshot/asset inspection, drawings, visual QA, bounded app work, source-grounded writing, small visual fixes | `terra`     | Reuse a suitable idle worker                 |
-| Short, self-contained research, source gathering, small fix, narrow implementation                              | `haiku`     | Fresh conversation for each new task         |
-| Continuing related bounded research or implementation that benefits from retained context                       | `luna`      | Prefer the matching successful idle worker   |
-| Other general coding, complex debugging, multi-file refactors, integration and meaningful tests                 | `sol`       | Default implementation worker                |
+| Screenshot/asset inspection, drawings, visual QA, bounded app work, source-grounded writing, small visual fixes | `terra`     | Reopen a matching saved worker when needed   |
+| One small guided code edit, narrow implementation/test, or short bounded lookup                                 | `haiku`     | Fresh conversation for each new task         |
+| Related guided edits, narrow implementations/tests, or bounded research using continuing context                | `luna`      | Reopen a matching saved worker when needed   |
+| Substantial implementation, complex debugging, broad refactors and cross-module integration                     | `sol`       | Escalation for complex implementation        |
 | Requested Grok work or a useful additional implementation/bug-hunting perspective                               | `grok`      | Supplemental; use Orca's native `grok` agent |
+
+Use GPT-6.2 Sol (`gpt-6.2-sol`) for Sol workers and Sol leads. Use GPT-6.2 Astra
+(`gpt-6.2-astra`) for Astra leads and supplemental Astra work. Preserve each role's
+saved effort, Fast mode, and permissions, including the Astra Medium rule below.
+Luna, Terra, Claude, and Grok keep their own saved models.
 
 Use Claude Opus 5.5 (`claude-opus-5-5`) at Medium effort (`medium`) for
 the `claude` role, including UI implementation and independent plan/code reviews.
@@ -85,7 +96,8 @@ continuing bounded assignment, not an open-ended project. Escalate complex debug
 or broad implementation to Sol. Routine code searches are Haiku/Luna work.
 For ongoing bounded work, prefer Luna over starting another short-task Haiku.
 The lead owns image concepts, visual direction, image briefs, and design critique;
-Claude implements the UI. Terra checks the rendered result when applicable. Assign app or
+Claude implements substantial UI changes; Terra can implement and inspect small
+guided visual fixes. Assign app or
 image actions only after checking that worker's own tools. Workers do not inherit
 the lead's connected tools. Escalate complex work to Sol or the lead.
 For a user-named model without a saved profile, use the appropriate role's saved
@@ -94,9 +106,15 @@ specified. Report incompatible settings rather than expanding permissions.
 
 ## Name the worker and declare its lifetime
 
-Choose `Ongoing` or `Task only` before creating or reusing a worker. The lifetime
-is about planned reuse, not how long one task takes. Give its visible chat name
-the lifetime, role, and concrete project/topic or task:
+Default to `Task only` and omit `--keep-open`. Accept the result, preserve its saved
+conversation and artifacts, then release and close the worker. Reuse means reopening
+that saved conversation when needed, not maintaining a pool of open idle workers.
+These lifecycle rules take precedence over saved profile notes about continuing workers.
+
+Use `Ongoing` only for an immediate, named follow-up in the current task, or when
+the user explicitly asks to keep that worker open. General project relevance,
+useful context, and possible future work do not justify retention. Give its visible
+chat name the lifetime, role, and concrete project/topic or task:
 
 - `Ongoing · Research · Ultron`: a researcher called repeatedly for related work.
 - `Ongoing · Visual QA · Orca`: a visual reviewer retained for the current project.
@@ -113,15 +131,20 @@ After preparation and before dispatch, rename the exact returned native session:
 Use the selected Orca executable for `ORCA`, verify the saved name in the receipt,
 and retain that session ID with the launch/Dispatch receipt for reuse and cleanup.
 
-For `Ongoing`, use `--keep-open` while related follow-ups are planned. Leave an
-accepted, idle worker available and visibly named as ongoing. Release and close
-it when that continuing scope ends, unless the user asks to keep it.
+For `Ongoing`, identify the next assignment before using `--keep-open` and dispatch
+that assignment as soon as it is ready. Close the worker when that immediate sequence
+ends. Do not keep a reviewer idle while implementation runs; reopen its saved
+conversation when the code review is ready.
 
 For `Task only`, omit `--keep-open` unless the user explicitly requests retention.
 The worker reports its result first; the lead accepts it and preserves reviewable
 results, then releases and closes that exact worker. Reporting `worker_done` or
 receiving a retained-resource receipt does not prove the chat/process closed.
 Verify cleanup and report a blocked or unconfirmed close accurately.
+
+At task checkpoints, release this lead's settled idle workers with no immediate
+named follow-up. Before the final report, close all task-owned workers except
+those the user explicitly asked to retain. Active assignments must settle first.
 
 A native chat prepared by this lead solely for a Task can be recorded as adopted
 or external. If normal release retains it for that reason, this task-only cleanup
@@ -131,7 +154,9 @@ and result accepted. Verify that it has no new active assignment or user Keep
 open override. Preserve its saved journal; do not force ownership, kill a PID,
 or apply this exception to unrelated, pre-existing, or user-kept chats. For CLI
 or remote workers, follow the execution host's guarded stop/release flow and its
-confirmed outcome; do not infer exit from a closed tab or a timeout.
+confirmed outcome; do not infer exit from a closed tab or a timeout. Apply the same
+cleanup to lead-created `Ongoing` chats when their immediate follow-ups end. The
+lead's own `--keep-open` flag is not an explicit user request to retain the chat.
 
 ## Launch through Orca
 
@@ -161,8 +186,8 @@ the intended workspace with the selected CLI; use its exact `id:`, `identity:`,
    `launch.outcome.kind` is `structured`. Rename `launch.outcome.sessionId` using
    the lifetime/role/scope convention above before dispatch.
 3. Register `launch.outcome.handle` with `orchestration worker-start --terminal`,
-   the same exact `--worktree`, a self-contained `--spec-file`. Add `--keep-open` only when the worker
-   will be reused for related work or the user asked to retain it.
+   the same exact `--worktree`, a self-contained `--spec-file`. Add `--keep-open` only
+   for an immediate named follow-up or the user's explicit retention request.
    Here `--terminal` accepts the native chat's address; it does not turn the
    chat into a terminal. Do not add `--agent`, `--model`, or `--effort`.
 4. Inspect the receipt and follow its `next`. End the turn after starting the
@@ -222,9 +247,10 @@ knows the project. A small follow-up that belongs to the same UI implementation
 can remain with its UI worker; routine research or documentation is assigned by
 its own role. Reuse only successful idle workers owned by this Run with matching
 model, effort, permissions, project, and useful context. Haiku starts fresh for each new task unless the
-user explicitly asks to resume. Keep a successful Luna worker for related bounded
-follow-ups and re-read files changed since its last assignment. Keep Sol, Terra,
-Claude, or Grok only while their context is useful to the current work. Independent
+user explicitly asks to resume. Reopen a successful Luna worker for a ready bounded
+follow-up and re-read files changed since its last assignment. Close Sol, Terra,
+Claude, and Grok after accepting their results unless an immediate named follow-up
+is ready. Reopen their saved conversations for later work. Independent
 reviewers must remain separate from implementers. After accepting a one-off result,
 or when related work is finished, use the guide's worker-release flow for the exact
 resource using the declared lifetime and cleanup policy above. Inspect retained

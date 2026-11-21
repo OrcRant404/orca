@@ -33,6 +33,7 @@ import { PluginHostCallError } from './plugin-host-call-scope'
 export type { PluginHostCallScope } from './plugin-host-call-scope'
 
 export type PluginWorktreeContext = {
+  path?: string
   worktreeId: string
   branch: string
   displayName: string

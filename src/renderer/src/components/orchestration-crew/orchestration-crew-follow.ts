@@ -105,7 +105,8 @@ export class CrewFollowSource {
         }
       })
       const revisions = onRuntimeEnvironmentRevisionsChanged(changed)
-      const store = useAppStore.subscribe(() => this.update())
+      const store =
+        this.target.kind === 'environment' ? useAppStore.subscribe(() => this.update()) : () => {}
       const gone = (): void => {
         this.retiredIdentity = this.current.identity
         this.block(false)

@@ -29,6 +29,17 @@ shortcut. Use the version-matched orchestration guide for supervision and delive
 Simple answers and trivial administrative actions can be handled directly. A chat
 without a supplied task does not start workers or modify files.
 
+Default small guided code edits and narrow tests to Haiku or Luna. Use Terra for
+small guided UI/visual fixes. Reserve Sol for complex debugging and substantial
+implementation, and Claude for new design or substantial UI/interaction changes.
+Implementation work or several touched files alone do not require a larger worker.
+
+Workers are Task only by default: accept their result, preserve the saved
+conversation, then release and close them. Keep a worker open only for an immediate
+named follow-up in this task or the user's explicit request. Reopen saved workers
+when needed; do not keep idle workers open for possible future reuse. Before the
+final report, close this task's workers unless the user asked to retain them.
+
 Use only this chat's authenticated identity and existing permissions. If supervised
 launch is unavailable, report the gap and continue authorized work directly when
 possible; do not borrow another lead's handle or create untracked workers.

@@ -50,6 +50,7 @@ describe('workspace.readContext host reachability', () => {
     const services = createServices(vi.fn())
     vi.mocked(services.resolveActiveWorktreeContext).mockResolvedValue({
       worktreeId: 'remote-repo::/home/user/repo',
+      path: '/home/user/repo',
       branch: '',
       displayName: 'Remote main'
     })
@@ -68,5 +69,53 @@ describe('workspace.readContext host reachability', () => {
       ok: true,
       value: { branch: '', displayName: 'Remote main', terminals: [] }
     })
+  })
+})
+
+describe('workspace.list focus', () => {
+  it('includes the focused path even when two workspace labels and branches match', async () => {
+    const services = createServices(vi.fn())
+    vi.mocked(services.resolveActiveWorktreeContext).mockResolvedValue({
+      worktreeId: 'second-repo::/second/main',
+      path: '/second/main',
+      branch: 'refs/heads/main',
+      displayName: 'main'
+    })
+    services.runtimeRpc = vi.fn(async (method) => {
+      if (method === 'worktree.list') {
+        return {
+          worktrees: [
+            {
+              id: 'first-repo::/first/main',
+              repoId: 'first-repo',
+              path: '/first/main',
+              displayName: 'main',
+              branch: 'refs/heads/main'
+            },
+            {
+              id: 'second-repo::/second/main',
+              repoId: 'second-repo',
+              path: '/second/main',
+              displayName: 'main',
+              branch: 'refs/heads/main'
+            }
+          ],
+          totalCount: 2
+        }
+      }
+      if (method === 'repo.list') {
+        return { repos: [] }
+      }
+      return { folderWorkspaces: [] }
+    })
+    const outcome = await executePluginHostCall({
+      pluginId: 'samples.demo',
+      method: 'workspace.list',
+      params: {},
+      surface: 'worker',
+      grantedCapabilities: ['workspace:read'],
+      services
+    })
+    expect(outcome).toMatchObject({ ok: true, value: { focusedPath: '/second/main' } })
   })
 })
